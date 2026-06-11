@@ -197,6 +197,10 @@ Build: `ui` → Vite build → copied into `cli` dist (promptfoo pattern); `serv
 - **Playwright e2e**: dashboard UI flows (view live run, triage finding, copy prompt).
 - **CI**: GitHub Actions — lint (eslint+prettier), typecheck, unit, integration, e2e on every PR.
 
-## 12. First target
+## 12. Documentation philosophy (owner requirement)
+
+**The README is the entire human surface.** A human reads only: what OpenUser is (3 paragraphs + screenshot + demo gif), how to install (`npx openuser`, add MCP config, `openuser skills install`), and how to talk to their agent ("test my checkout flow as a new buyer"). Everything operational — creating personas, designing tests, dispatching testers, triaging, explaining results — is encoded in the **skills**, so any agent with the manager skill is a complete expert on the system. Deeper docs in `docs/` exist for contributors, not users.
+
+## 13. First target
 
 Dogfood on `~/projects/ecommerce-digital` (large Go + SvelteKit e-commerce platform): register project, personas like *reseller*, *first-time buyer*, *platform admin*, checkpoints for logged-in states, smoke suite over checkout/registration/kolektif flows.
