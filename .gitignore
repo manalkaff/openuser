@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+.svelte-kit/
+build/
+
+# test & coverage
+coverage/
+.vitest/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# runtime data
+~/.openuser/
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pnpm
+.pnpm-store/
