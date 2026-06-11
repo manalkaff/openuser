@@ -309,3 +309,73 @@ Do not read any source code. Do not use any tools other than the openuser tester
 | 07 | `2026-06-11-07-skills-demo-readme.md` | both skills, demo-shop, README, full-lifecycle integration test, CI final | all |
 
 Execution order: 01 → 02 → 03 → 04 → 05 → 06 → 07 (04 and 05 may run in parallel after 02/03).
+
+---
+
+## Addenda (post-plan-review)
+
+### A1. LogEvent type (§5 addition)
+
+`LogEvent` is defined in `@openuser/shared` alongside the other shared types. Add `LogEventSchema` to `packages/shared/src/types.ts` and export it from `packages/shared/src/index.ts`:
+
+```ts
+export const LogEventSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  stepIdx: z.number().int(),
+  kind: z.enum(['console', 'network']),
+  level: z.string().nullable(),   // 'error'|'warning' for console; HTTP status string or 'failed' for network
+  payload: z.record(z.unknown()),
+  createdAt: z.number(),          // timestamp ms
+});
+export type LogEvent = z.infer<typeof LogEventSchema>;
+```
+
+### A2. GET /api/runs/:id/events (§6 addition)
+
+New manager REST route (add to §6 manager table):
+
+| Method | Path | Auth | Body/Params | Response |
+|--------|------|------|-------------|----------|
+| GET | `/api/runs/:id/events` | session | — | `LogEvent[]` |
+
+Handler: `SELECT * FROM log_events WHERE run_id = :id ORDER BY created_at ASC`. Plan 05 implements this route and its Vitest test in `packages/server`.
+
+### A3. Screenshot path format
+
+`POST /api/tester/screenshot` and the auto-screenshot in `POST /api/tester/finding` return `{ path: string }` where **path is relative to the artifacts root**, e.g. `run_abc123/shots/xYznanoid.png`. The MCP `browser_screenshot` tool fetches the image at `GET /artifacts/<path>` (i.e. `${baseUrl}/artifacts/${result.path}`). Implementations must NOT return absolute filesystem paths.
+
+### A4. MCP tool inputs mirror §6 REST bodies
+
+MCP tool input schemas (§9) mirror the corresponding §6 REST request bodies exactly, using zod schemas from `@openuser/shared`. In particular, `prepare_run` includes `projectId: z.string()` in its input schema, matching `POST /api/runs` body.
+
+### A5. browserChannel routing
+
+`PlaywrightRunner` reads `browserChannel` from the settings service directly (via `SettingsService.get()`); it is not a field on the `RunnerSession.begin()` opts object. The `RunnerSession` interface (§8) is unchanged. Plan 03 wires this internally in `PlaywrightRunner.begin()`.
+
+### A6. ConsoleEvent and NetworkEvent canonical shapes
+
+The canonical `ConsoleEvent` and `NetworkEvent` shapes (used by both `FakeRunner` in Plan 02 and `PlaywrightRunner` in Plan 03) are:
+
+```ts
+export interface ConsoleEvent {
+  level: 'log' | 'info' | 'warning' | 'error' | 'debug';
+  text: string;
+  location?: string;   // "url:line" — optional, Playwright provides this
+  stepIdx: number;
+  timestamp: number;
+}
+
+export interface NetworkEvent {
+  kind: 'request' | 'response' | 'failed';
+  method: string;
+  url: string;
+  status?: number;         // present on 'response'
+  resourceType: string;
+  bodySnippet?: string;    // present for failed JSON/api responses only
+  stepIdx: number;
+  timestamp: number;
+}
+```
+
+`LogPipelineService.handleConsole` filters on `event.level === 'error'`; `handleNetwork` filters on `event.kind === 'failed'` or `event.kind === 'response' && event.status >= 400`.
