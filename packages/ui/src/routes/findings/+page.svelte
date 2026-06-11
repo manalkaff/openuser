@@ -23,6 +23,7 @@
 
   // Inline status update
   let updatingId = $state<string | null>(null);
+  let statusError = $state<string | null>(null);
 
   onMount(async () => {
     try {
@@ -61,11 +62,14 @@
   }
 
   async function handleStatusChange(finding: Finding, newStatus: FindingStatus) {
+    statusError = null;
     updatingId = finding.id;
     try {
       const updated = await patchFinding(finding.id, newStatus);
       findings = findings.map(f => f.id === updated.id ? updated : f);
-    } catch { /* ignore */ } finally {
+    } catch (e) {
+      statusError = e instanceof Error ? e.message : 'Failed to update status';
+    } finally {
       updatingId = null;
     }
   }
@@ -154,6 +158,10 @@
     </span>
   </div>
 
+  {#if statusError}
+    <div class="mb-4 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-400">{statusError}</div>
+  {/if}
+
   {#if loading}
     <div class="space-y-2">
       {#each [1, 2, 3, 4] as i (i)}
@@ -213,12 +221,14 @@
                 </div>
 
                 <!-- Status selector -->
-                <div class="flex items-center gap-2 shrink-0" onclick={(e) => e.stopPropagation()}>
+                <div class="flex items-center gap-2 shrink-0">
                   <RelativeTime timestamp={finding.createdAt} class="text-xs text-zinc-600 hidden sm:block" />
                   <select
                     value={finding.status}
                     disabled={updatingId === finding.id}
+                    onclick={(e) => e.stopPropagation()}
                     onchange={(e) => {
+                      e.stopPropagation();
                       const el = e.currentTarget as HTMLSelectElement;
                       handleStatusChange(finding, el.value as FindingStatus);
                     }}

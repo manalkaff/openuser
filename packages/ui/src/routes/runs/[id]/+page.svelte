@@ -32,13 +32,6 @@
   // Live log events for running runs (from WS store)
   const liveLogEvents = $derived(wsRunLogEvents[runId] ?? []);
 
-  // Effective log events: live while running, static when finished
-  const logEvents = $derived(
-    run?.status === 'running' ? liveLogEvents : finishedLogEvents
-  );
-  const consoleEvents = $derived(logEvents.filter(e => e.kind === 'console'));
-  const networkEvents = $derived(logEvents.filter(e => e.kind === 'network'));
-
   // Live steps from WS (appended as run progresses)
   const liveSteps = $derived(wsRunSteps[runId] ?? []);
 
@@ -57,6 +50,14 @@
   // Cast to RunStatus — wsRunStatus payload is typed as string but the server always sends valid RunStatus values
   const effectiveStatus = $derived((statusUpdate?.status ?? run?.status ?? 'pending') as RunStatus);
   const effectiveVerdict = $derived(statusUpdate?.verdict ?? run?.verdict ?? null);
+
+  // Effective log events: live while running, static when finished
+  // F1: key off effectiveStatus (which reflects live WS updates), not the stale run?.status
+  const logEvents = $derived(
+    effectiveStatus === 'running' ? liveLogEvents : finishedLogEvents
+  );
+  const consoleEvents = $derived(logEvents.filter(e => e.kind === 'console'));
+  const networkEvents = $derived(logEvents.filter(e => e.kind === 'network'));
 
   // Promote modal
   let promoteOpen = $state(false);
@@ -176,6 +177,9 @@
                 type="button"
                 onclick={() => {
                   promoteTitle = run!.adhocGoal ?? '';
+                  promotePriority = 'medium';
+                  promoteTags = '';
+                  promoteError = null;
                   promoteOpen = true;
                 }}
                 class="rounded-lg border border-indigo-700 bg-indigo-600/20 px-4 py-1.5 text-sm font-medium text-indigo-400 hover:bg-indigo-600/30 transition-colors"
@@ -298,6 +302,7 @@
                       class="w-full rounded-lg border border-zinc-800 bg-black max-h-96"
                       src={`/artifacts/${runId}/${run!.videoPath}`}
                     >
+                      <track kind="captions" label="No captions" />
                       Your browser does not support video playback.
                     </video>
                   </div>
@@ -311,11 +316,11 @@
               {:else}
                 <div class="rounded-lg border border-zinc-800 bg-zinc-950 font-mono text-xs overflow-auto max-h-[50vh]">
                   {#each consoleEvents as evt (evt.id)}
-                    <div class="flex gap-2 px-3 py-1.5 border-b border-zinc-900 last:border-0
-                                {evt.level === 'error' ? 'text-red-400' : 'text-yellow-400'}">
+                    {@const cp = evt.payload as { text?: string }}
+                    <div class="flex gap-2 px-3 py-1.5 border-b border-zinc-900 last:border-0 text-red-400">
                       <span class="text-zinc-600 shrink-0">#{evt.stepIdx}</span>
                       <span class="text-zinc-500 shrink-0 uppercase text-[10px] leading-4 w-12">{evt.level}</span>
-                      <span class="break-all">{JSON.stringify(evt.payload)}</span>
+                      <span class="break-all">{cp.text ?? JSON.stringify(evt.payload)}</span>
                     </div>
                   {/each}
                 </div>
@@ -449,15 +454,16 @@
   <div
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
     onclick={() => { enlargedShot = null; }}
+    onkeydown={(e) => { if (e.key === 'Escape') enlargedShot = null; }}
     role="dialog"
     aria-modal="true"
     aria-label="Screenshot preview"
+    tabindex="-1"
   >
     <img
       src={enlargedShot}
       alt="Screenshot enlarged"
       class="max-h-[90vh] max-w-[95vw] rounded-lg shadow-2xl"
-      onclick={(e) => e.stopPropagation()}
     />
     <button
       type="button"

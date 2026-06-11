@@ -9,6 +9,7 @@
   let error = $state<string | null>(null);
   let saving = $state(false);
   let saveMsg = $state('');
+  let saveError = $state<string | null>(null);
 
   // Form state mirrors settings
   let watchdogMinutes = $state(5);
@@ -31,6 +32,7 @@
   async function handleSave() {
     saving = true;
     saveMsg = '';
+    saveError = null;
     try {
       const updated = await patchSettings({
         watchdogMinutes: Number(watchdogMinutes),
@@ -41,7 +43,7 @@
       saveMsg = 'Saved!';
       setTimeout(() => { saveMsg = ''; }, 2000);
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Save failed';
+      saveError = e instanceof Error ? e.message : 'Save failed';
     } finally {
       saving = false;
     }
@@ -128,8 +130,8 @@
   ];
 
   let activeAgent = $state('claude');
-  const activeSnippet = $derived(mcpSnippets.find(s => s.agent === activeAgent)!);
-  const activeSkillCmd = $derived(skillsInstallCommands.find(s => s.agent === activeAgent)!);
+  const activeSnippet = $derived(mcpSnippets.find(s => s.agent === activeAgent) ?? mcpSnippets[0]!);
+  const activeSkillCmd = $derived(skillsInstallCommands.find(s => s.agent === activeAgent) ?? skillsInstallCommands[0]!);
 </script>
 
 <div class="p-8 max-w-4xl">
@@ -203,6 +205,8 @@
         <div class="flex items-center justify-between pt-2 border-t border-zinc-800">
           {#if saveMsg}
             <p class="text-sm text-green-400">{saveMsg}</p>
+          {:else if saveError}
+            <p class="text-sm text-red-400">{saveError}</p>
           {:else}
             <span></span>
           {/if}
