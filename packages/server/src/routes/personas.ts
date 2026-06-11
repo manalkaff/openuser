@@ -102,7 +102,9 @@ export function personasRouter(ctx: ServerContext) {
     if (body.notes !== undefined) updates.notes = body.notes;
     if (body.archived !== undefined) updates.archived = body.archived;
 
-    ctx.db.update(personas).set(updates).where(eq(personas.id, id)).run();
+    if (Object.keys(updates).length > 0) {
+      ctx.db.update(personas).set(updates).where(eq(personas.id, id)).run();
+    }
     const updated = ctx.db.select().from(personas).where(eq(personas.id, id)).get()!;
     return c.json(updated);
   });

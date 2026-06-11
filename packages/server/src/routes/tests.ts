@@ -100,7 +100,9 @@ export function testsRouter(ctx: ServerContext) {
     if (body.source !== undefined) updates.source = body.source;
     if (body.archived !== undefined) updates.archived = body.archived;
 
-    ctx.db.update(tests).set(updates).where(eq(tests.id, id)).run();
+    if (Object.keys(updates).length > 0) {
+      ctx.db.update(tests).set(updates).where(eq(tests.id, id)).run();
+    }
     const updated = ctx.db.select().from(tests).where(eq(tests.id, id)).get()!;
     return c.json(updated);
   });

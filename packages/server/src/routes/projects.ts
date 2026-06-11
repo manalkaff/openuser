@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { ServerContext } from '../app.js';
 import { projects, findings, runs } from '../db/schema.js';
@@ -60,13 +60,13 @@ export function projectsRouter(ctx: ServerContext) {
       const openFindingsRow = ctx.db
         .select({ count: sql<number>`count(*)` })
         .from(findings)
-        .where(sql`${findings.projectId} = ${p.id} AND ${findings.status} = 'open'`)
+        .where(and(eq(findings.projectId, p.id), eq(findings.status, 'open')))
         .get();
       const lastRunRow = ctx.db
         .select({ finishedAt: runs.finishedAt })
         .from(runs)
         .where(eq(runs.projectId, p.id))
-        .orderBy(sql`${runs.createdAt} DESC`)
+        .orderBy(desc(runs.createdAt))
         .limit(1)
         .get();
       return {
@@ -96,7 +96,9 @@ export function projectsRouter(ctx: ServerContext) {
     if (body.baseUrl !== undefined) updates.baseUrl = body.baseUrl;
     if (body.environments !== undefined) updates.environments = body.environments;
     if (body.defaultViewport !== undefined) updates.defaultViewport = body.defaultViewport;
-    ctx.db.update(projects).set(updates).where(eq(projects.id, id)).run();
+    if (Object.keys(updates).length > 0) {
+      ctx.db.update(projects).set(updates).where(eq(projects.id, id)).run();
+    }
     const updated = ctx.db.select().from(projects).where(eq(projects.id, id)).get()!;
     return c.json(updated);
   });

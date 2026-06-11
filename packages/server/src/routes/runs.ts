@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import type { ServerContext } from '../app.js';
-import { RunLifecycleService } from '../services/run-lifecycle.service.js';
+import { RunLifecycleService, NotFoundError } from '../services/run-lifecycle.service.js';
 
 const PrepareRunBody = z.object({
   projectId: z.string().min(1),
@@ -36,7 +36,8 @@ export function runsRouter(ctx: ServerContext) {
       });
       return c.json({ runId: result.runId, token: result.token, testerPrompt: result.testerPrompt }, 201);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error ? err.message : 'Bad request';
+      if (err instanceof NotFoundError) return c.json({ error: msg }, 404);
       return c.json({ error: msg }, 400);
     }
   });

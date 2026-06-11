@@ -40,6 +40,13 @@ export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
 /** Status computation rule from contracts §3 */
 export function computeRunStatus(
   verdict: Verdict,
@@ -89,17 +96,17 @@ export class RunLifecycleService {
 
     // Load project
     const project = this.db.select().from(projects).where(eq(projects.id, input.projectId)).get();
-    if (!project) throw new Error(`Project not found: ${input.projectId}`);
+    if (!project) throw new NotFoundError(`Project not found: ${input.projectId}`);
 
     // Load persona
     const persona = this.db.select().from(personas).where(eq(personas.id, input.personaId)).get();
-    if (!persona) throw new Error(`Persona not found: ${input.personaId}`);
+    if (!persona) throw new NotFoundError(`Persona not found: ${input.personaId}`);
 
     // Resolve goal
     let goal = input.adhocGoal ?? '';
     if (input.testId) {
       const test = this.db.select().from(tests).where(eq(tests.id, input.testId)).get();
-      if (!test) throw new Error(`Test not found: ${input.testId}`);
+      if (!test) throw new NotFoundError(`Test not found: ${input.testId}`);
       goal = test.goal;
     }
 
@@ -153,7 +160,8 @@ export class RunLifecycleService {
   /** Update run status and broadcast run.updated */
   updateStatus(runId: string, status: RunStatus, extra?: Partial<typeof runs.$inferInsert>): void {
     this.db.update(runs).set({ status, ...extra }).where(eq(runs.id, runId)).run();
-    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get()!;
+    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!run) return;
     this.wsHub.broadcastRun(runId, 'run.updated', run);
   }
 
@@ -181,7 +189,8 @@ export class RunLifecycleService {
       })
       .where(eq(runs.id, runId))
       .run();
-    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get()!;
+    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!run) return status;
     this.wsHub.broadcastRun(runId, 'run.completed', run);
     return status;
   }
@@ -193,7 +202,8 @@ export class RunLifecycleService {
       .set({ status: 'aborted', finishedAt: new Date(), videoPath: videoPath ?? null })
       .where(eq(runs.id, runId))
       .run();
-    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get()!;
+    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!run) return;
     this.wsHub.broadcastRun(runId, 'run.completed', run);
   }
 
