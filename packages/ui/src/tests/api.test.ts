@@ -4,6 +4,7 @@ import type { Project, Run, Finding, LogEvent } from '@openuser/shared';
 // We test the api module after mocking fetch
 // The api module is imported dynamically after fetch is set up
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let api: typeof import('../lib/api.js');
 
 const mockProject: Project = {

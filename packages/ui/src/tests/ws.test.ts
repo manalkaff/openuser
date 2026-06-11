@@ -51,6 +51,7 @@ vi.stubGlobal('WebSocket', MockWebSocket);
 
 // ── Import store after mock is set ──────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let wsStore: typeof import('../lib/ws.svelte.js');
 
 describe('ws store', () => {

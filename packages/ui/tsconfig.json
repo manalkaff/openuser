@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "module": "ESNext",
     "target": "ESNext",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   }
 }

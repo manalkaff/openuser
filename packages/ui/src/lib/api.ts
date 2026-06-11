@@ -1,6 +1,7 @@
 import type {
   Project, Persona, Test, Run, Step, Finding, Checkpoint, LogEvent,
   RunStatus, Severity, FindingType, FindingStatus,
+  PersonaIdentity, PersonaBehavior, PersonaKnowledge,
 } from '@openuser/shared';
 
 // ── Types for request bodies ─────────────────────────────────────────────────
@@ -16,9 +17,9 @@ export type CreateProjectBody = {
 export type CreatePersonaBody = {
   name: string;
   role: string;
-  identity: import('@openuser/shared').PersonaIdentity;
-  behavior: import('@openuser/shared').PersonaBehavior;
-  knowledge: import('@openuser/shared').PersonaKnowledge;
+  identity: PersonaIdentity;
+  behavior: PersonaBehavior;
+  knowledge: PersonaKnowledge;
   notes?: string;
 };
 

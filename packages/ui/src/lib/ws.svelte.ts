@@ -1,4 +1,4 @@
-import type { Step, Finding, LogEvent } from '@openuser/shared';
+import type { Step, LogEvent } from '@openuser/shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
