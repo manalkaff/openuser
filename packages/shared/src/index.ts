@@ -37,6 +37,8 @@ export {
   type TesterAction,
   PageSnapshotSchema,
   type PageSnapshot,
+  LogEventSchema,
+  type LogEvent,
 } from './types.js';
 
 // API schemas
@@ -98,3 +100,14 @@ export {
   WsServerEventSchema,
   type WsServerEvent,
 } from './ws.js';
+
+// Entity types (DB row shapes as returned by the REST API)
+export {
+  type Project,
+  type Persona,
+  type Checkpoint,
+  type Test,
+  type Run,
+  type Step,
+  type Finding,
+} from './entities.js';

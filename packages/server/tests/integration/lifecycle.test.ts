@@ -415,6 +415,51 @@ describe('server lifecycle integration', () => {
     expect(md).toContain('## Steps');
   });
 
+  // ---- run events ----
+
+  it('GET /api/runs/:id/events returns [] for a run with no events', async () => {
+    const prepR = await apiPost(port, '/api/runs', { projectId, adhocGoal: 'events empty test', personaId });
+    const { runId } = prepR.body as { runId: string };
+
+    const r = await apiGet(port, `/api/runs/${runId}/events`);
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.body)).toBe(true);
+    expect((r.body as unknown[]).length).toBe(0);
+  });
+
+  it('GET /api/runs/:id/events returns seeded events', async () => {
+    const { openDatabase } = await import('../../src/db/client.js');
+    const { db } = openDatabase(homeDir);
+    const { logEvents } = await import('../../src/db/schema.js');
+
+    const prepR = await apiPost(port, '/api/runs', { projectId, adhocGoal: 'events seeded test', personaId });
+    const { runId } = prepR.body as { runId: string };
+
+    // Seed a log event directly into the DB
+    const now = Date.now();
+    db.insert(logEvents).values({
+      id: `evt_test_${Date.now()}`,
+      runId,
+      stepIdx: 0,
+      kind: 'console',
+      level: 'error',
+      payload: { message: 'Test error message' },
+      createdAt: new Date(now),
+    }).run();
+
+    const r = await apiGet(port, `/api/runs/${runId}/events`);
+    expect(r.status).toBe(200);
+    const body = r.body as { id: string; kind: string; level: string }[];
+    expect(body.length).toBe(1);
+    expect(body[0].kind).toBe('console');
+    expect(body[0].level).toBe('error');
+  });
+
+  it('GET /api/runs/:id/events returns 404 for unknown run', async () => {
+    const r = await apiGet(port, '/api/runs/run_doesnotexist/events');
+    expect(r.status).toBe(404);
+  });
+
   // ---- promote ----
 
   it('POST /api/runs/:id/promote creates a test with source promoted_from_run', async () => {

@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 import type { ServerContext } from '../app.js';
 import { RunLifecycleService, NotFoundError } from '../services/run-lifecycle.service.js';
 import { ReportService } from '../services/report.service.js';
-import { runs, steps, findings, tests } from '../db/schema.js';
+import { runs, steps, findings, tests, logEvents } from '../db/schema.js';
 
 const PrepareRunBody = z.object({
   projectId: z.string().min(1),
@@ -80,6 +80,22 @@ export function runsRouter(ctx: ServerContext) {
     const allFindings = ctx.db.select().from(findings).where(eq(findings.runId, id)).orderBy(findings.createdAt).all();
 
     return c.json({ ...run, steps: allSteps, findings: allFindings });
+  });
+
+  // GET /api/runs/:id/events
+  app.get('/api/runs/:id/events', (c) => {
+    const id = c.req.param('id');
+    const run = ctx.db.select().from(runs).where(eq(runs.id, id)).get();
+    if (!run) return c.json({ error: 'Run not found' }, 404);
+
+    const events = ctx.db
+      .select()
+      .from(logEvents)
+      .where(eq(logEvents.runId, id))
+      .orderBy(logEvents.createdAt)
+      .all();
+
+    return c.json(events);
   });
 
   // GET /api/runs/:id/report

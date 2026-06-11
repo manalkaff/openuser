@@ -45,3 +45,15 @@ export const PageSnapshotSchema = z.object({
   tree: z.string(), // a11y outline text with [ref=eN] markers
 });
 export type PageSnapshot = z.infer<typeof PageSnapshotSchema>;
+
+// LogEvent — run console/network log entries (Plan 05 addendum)
+export const LogEventSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  stepIdx: z.number(),
+  kind: z.enum(['console', 'network']),
+  level: z.string().nullable(),
+  payload: z.record(z.unknown()),
+  createdAt: z.number(),
+});
+export type LogEvent = z.infer<typeof LogEventSchema>;
