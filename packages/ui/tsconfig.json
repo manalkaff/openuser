@@ -1,12 +1,10 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "rootDir": "src",
-    "outDir": "dist",
+    "target": "ESNext",
     "verbatimModuleSyntax": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["dist", ".svelte-kit"]
+  }
 }
