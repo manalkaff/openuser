@@ -57,7 +57,8 @@ export function runsRouter(ctx: ServerContext) {
   app.get('/api/runs', (c) => {
     const projectId = c.req.query('projectId');
     const status = c.req.query('status');
-    const limit = parseInt(c.req.query('limit') ?? '50', 10);
+    const rawLimit = parseInt(c.req.query('limit') ?? '50', 10);
+    const limit = Number.isNaN(rawLimit) || rawLimit < 1 ? 50 : Math.min(rawLimit, 500);
 
     const conditions = [];
     if (projectId) conditions.push(eq(runs.projectId, projectId));
@@ -96,6 +97,11 @@ export function runsRouter(ctx: ServerContext) {
     const id = c.req.param('id');
     const run = ctx.db.select().from(runs).where(eq(runs.id, id)).get();
     if (!run) return c.json({ error: 'Run not found' }, 404);
+
+    const terminal = ['passed', 'failed', 'blocked', 'aborted'];
+    if (!terminal.includes(run.status)) {
+      return c.json({ error: 'Run must be in a terminal state to promote' }, 409);
+    }
 
     const body = c.req.valid('json');
 

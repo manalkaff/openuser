@@ -11,6 +11,8 @@ export function snapshotRouter(ctx: ServerContext, activeSessions: ActiveSession
   app.post('/api/tester/snapshot', authMiddleware, async (c) => {
     const run = c.get('run');
 
+    ctx.watchdogReset?.(run.id);
+
     if (run.status !== 'running') {
       return c.json({ error: 'Run is not in running state' }, 409);
     }

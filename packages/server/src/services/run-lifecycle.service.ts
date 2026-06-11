@@ -195,15 +195,16 @@ export class RunLifecycleService {
     return status;
   }
 
-  /** Abort a run (watchdog or crash) */
+  /** Abort a run (watchdog or crash) — guarded: no-ops if run already reached a terminal state */
   abort(runId: string, videoPath?: string): void {
     this.db
       .update(runs)
       .set({ status: 'aborted', finishedAt: new Date(), videoPath: videoPath ?? null })
-      .where(eq(runs.id, runId))
+      .where(and(eq(runs.id, runId), eq(runs.status, 'running')))
       .run();
     const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
-    if (!run) return;
+    // If the run is not 'aborted' the guarded UPDATE changed 0 rows — it already completed; do nothing
+    if (!run || run.status !== 'aborted') return;
     this.wsHub.broadcastRun(runId, 'run.completed', run);
   }
 

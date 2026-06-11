@@ -373,6 +373,17 @@ describe('server lifecycle integration', () => {
     expect((complR.body as { status: string }).status).toBe('failed');
   });
 
+  it('goal_achieved + high finding → failed', async () => {
+    const prepR = await apiPost(port, '/api/runs', { projectId, adhocGoal: 'test', personaId });
+    const { token } = prepR.body as { token: string };
+    await apiPost(port, '/api/tester/begin', {}, token);
+    await apiPost(port, '/api/tester/finding', {
+      type: 'functional', severity: 'high', title: 'Major regression', description: 'Important flow broken',
+    }, token);
+    const complR = await apiPost(port, '/api/tester/complete', { verdict: 'goal_achieved', summary: 'done despite high severity issue' }, token);
+    expect((complR.body as { status: string }).status).toBe('failed');
+  });
+
   it('blocked verdict → blocked status', async () => {
     const prepR = await apiPost(port, '/api/runs', { projectId, adhocGoal: 'test', personaId });
     const { token } = prepR.body as { token: string };
@@ -544,5 +555,23 @@ describe('watchdog (fake timers)', () => {
 
     const runR = await apiGet(port, `/api/runs/${runId}`);
     expect((runR.body as { status: string }).status).toBe('aborted');
+  });
+
+  it('watchdog creates an auto-checkpoint when aborting a run', async () => {
+    const prepR = await apiPost(port, '/api/runs', { projectId, adhocGoal: 'wd checkpoint test', personaId });
+    const { runId, token } = prepR.body as { runId: string; token: string };
+
+    await apiPost(port, '/api/tester/begin', {}, token);
+
+    await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    // Run must be aborted
+    const runR = await apiGet(port, `/api/runs/${runId}`);
+    expect((runR.body as { status: string }).status).toBe('aborted');
+
+    // Watchdog must have written an auto-checkpoint for this project
+    const chkR = await apiGet(port, `/api/projects/${projectId}/checkpoints`);
+    expect((chkR.body as unknown[]).length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -13,6 +13,8 @@ export function screenshotRouter(ctx: ServerContext, activeSessions: ActiveSessi
   app.post('/api/tester/screenshot', authMiddleware, async (c) => {
     const run = c.get('run');
 
+    ctx.watchdogReset?.(run.id);
+
     if (run.status !== 'running') {
       return c.json({ error: 'Run is not in running state' }, 409);
     }
