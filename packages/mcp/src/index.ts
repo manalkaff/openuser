@@ -21,5 +21,7 @@ export async function runMcp(role: McpRole): Promise<void> {
   }
 
   const transport = new StdioServerTransport();
+  // The process stays alive via the stdio transport — lifetime is transport-driven,
+  // not promise-driven. Do not add await-and-exit logic after this line.
   await server.connect(transport);
 }

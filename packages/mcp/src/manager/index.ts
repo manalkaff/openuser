@@ -23,17 +23,8 @@ import {
   getCheckpoints,
   deleteCheckpoint,
   type HttpClientOptions,
-  ApiError,
 } from '../http-client.js';
-
-function mcpError(err: unknown): { content: { type: 'text'; text: string }[]; isError: true } {
-  const msg = err instanceof ApiError ? `API error ${err.status}: ${err.message}` : String(err);
-  return { content: [{ type: 'text', text: msg }], isError: true };
-}
-
-function ok(data: unknown): { content: { type: 'text'; text: string }[] } {
-  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-}
+import { ok, mcpError } from '../mcp-helpers.js';
 
 export function registerManagerTools(server: McpServer, opts: HttpClientOptions): void {
   // ── 1. register_project ────────────────────────────────────────────────────

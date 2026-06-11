@@ -9,26 +9,16 @@ import {
   testerCheckpoint,
   testerComplete,
   fetchArtifactBytes,
-  ApiError,
   type HttpClientOptions,
 } from '../http-client.js';
+import { ok, mcpError } from '../mcp-helpers.js';
 
 /** In-process session state. Set once by begin_run, used by all subsequent tools. */
 interface TesterSession {
   token: string;
-  runId: string;
 }
 
 let session: TesterSession | null = null;
-
-function mcpError(err: unknown): { content: { type: 'text'; text: string }[]; isError: true } {
-  const msg = err instanceof ApiError ? `API error ${err.status}: ${err.message}` : String(err);
-  return { content: [{ type: 'text', text: msg }], isError: true };
-}
-
-function ok(data: unknown): { content: { type: 'text'; text: string }[] } {
-  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-}
 
 function requireSession(): { content: { type: 'text'; text: string }[]; isError: true } | null {
   if (!session) {
@@ -50,6 +40,7 @@ function requireSession(): { content: { type: 'text'; text: string }[]; isError:
 export function registerTesterTools(server: McpServer, baseUrl: string): void {
   function getOpts(): HttpClientOptions {
     const tok = session?.token;
+    // Non-begin tools guard with requireSession(), so a token is present at those call sites; begin_run passes opts directly.
     return tok !== undefined ? { baseUrl, token: tok } : { baseUrl };
   }
 
@@ -69,16 +60,11 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
     },
     async (input) => {
       try {
-        // Set token before calling begin so the auth header is sent
-        session = { token: input.token, runId: '' };
-        const result = await testerBegin(getOpts());
-        // The server returns the runId embedded; we store it for reference in error messages
-        // (the run ID is available via get_run on the manager side; we don't need it here for routing)
-        // Store a placeholder so session is non-null
-        session = { token: input.token, runId: 'active' };
+        const result = await testerBegin({ baseUrl, token: input.token });
+        session = { token: input.token };
         return ok(result);
       } catch (err) {
-        session = null; // reset on failure
+        session = null;
         return mcpError(err);
       }
     },
@@ -481,10 +467,12 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
       if (sessionErr) return sessionErr;
       try {
         const result = await testerComplete(getOpts(), input);
-        // Clear session after completion
+        // run is terminal (or unreachable) either way — drop the session
         session = null;
         return ok(result);
       } catch (err) {
+        // run is terminal (or unreachable) either way — drop the session
+        session = null;
         return mcpError(err);
       }
     },
