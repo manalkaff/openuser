@@ -26,6 +26,7 @@ import {
   testerFinding,
   testerCheckpoint,
   testerComplete,
+  fetchArtifactBytes,
   ApiError,
   type HttpClientOptions,
 } from '../src/http-client.js';
@@ -120,7 +121,8 @@ function buildMockApp(): Hono {
   app.post('/api/projects', (c) => c.json(MOCK_PROJECT, 201));
   app.get('/api/projects', (c) => c.json([MOCK_PROJECT]));
 
-  // Personas
+  // Personas — error route must be registered before the generic personas route
+  app.get('/api/projects/err_500/personas', (c) => c.json({ error: 'Boom: persona lookup failed' }, 500));
   app.post('/api/projects/:id/personas', (c) => c.json(MOCK_PERSONA, 201));
   app.patch('/api/personas/:id', (c) => c.json(MOCK_PERSONA));
   app.get('/api/projects/:id/personas', (c) => c.json([MOCK_PERSONA]));
@@ -174,6 +176,13 @@ function buildMockApp(): Hono {
     c.json({ status: 'passed', findings: [MOCK_FINDING] }),
   );
 
+  // Artifact route for fetchArtifactBytes test
+  app.get('/artifacts/run_test1234/shots/abc.png', (c) => {
+    // 1x1 transparent PNG
+    const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    return new Response(Buffer.from(b64, 'base64'), { headers: { 'Content-Type': 'image/png' } });
+  });
+
   // Error route for testing ApiError
   app.get('/api/error-test', (c) => c.json({ error: 'Something went wrong' }, 500));
 
@@ -197,9 +206,7 @@ beforeAll(async () => {
   });
 });
 
-afterAll(() => {
-  server.close();
-});
+afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
 describe('HTTP client — manager routes', () => {
   it('postProject returns a project', async () => {
@@ -403,15 +410,15 @@ describe('HTTP client — tester routes', () => {
 });
 
 describe('HTTP client — error handling', () => {
-  it('throws ApiError on non-2xx response', async () => {
-    await expect(
-      fetch(`${baseUrl}/api/error-test`).then(async (res) => {
-        if (!res.ok) {
-          const j = (await res.json()) as { error?: string };
-          throw new ApiError(res.status, j.error ?? `HTTP ${res.status}`);
-        }
-      }),
-    ).rejects.toThrow(ApiError);
+  it('throws ApiError with status and server message on non-2xx', async () => {
+    try {
+      await getPersonas(opts, 'err_500');
+      throw new Error('Expected getPersonas to throw');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).status).toBe(500);
+      expect((err as ApiError).message).toBe('Boom: persona lookup failed');
+    }
   });
 
   it('ApiError carries status code', async () => {
@@ -419,5 +426,16 @@ describe('HTTP client — error handling', () => {
     expect(err.status).toBe(404);
     expect(err.message).toBe('Not found');
     expect(err.name).toBe('ApiError');
+  });
+});
+
+describe('HTTP client — artifacts', () => {
+  it('fetchArtifactBytes returns base64 data and mimeType', async () => {
+    const { data, mimeType } = await fetchArtifactBytes(baseUrl, 'run_test1234/shots/abc.png');
+    expect(mimeType).toBe('image/png');
+    expect(typeof data).toBe('string');
+    expect(data.length).toBeGreaterThan(0);
+    // round-trips back to a PNG header (\x89PNG)
+    expect(Buffer.from(data, 'base64').subarray(0, 4).toString('latin1')).toBe('\x89PNG');
   });
 });

@@ -90,12 +90,12 @@ async function spawnMcpClient(role: 'manager' | 'tester', openUserHome: string):
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
 let openUserHome: string;
-let daemonStop: () => Promise<void>;
+let daemonStop: () => Promise<void> = async () => {};
 let daemonBaseUrl: string;
 let managerClient: Client;
-let managerClose: () => Promise<void>;
+let managerClose: () => Promise<void> = async () => {};
 let testerClient: Client;
-let testerClose: () => Promise<void>;
+let testerClose: () => Promise<void> = async () => {};
 
 // State threaded through tests
 let projectId: string;
@@ -103,7 +103,6 @@ let personaId: string;
 let testId: string;
 let runId: string;
 let testerToken: string;
-let testerPrompt: string;
 
 beforeAll(async () => {
   // Create isolated temp home
@@ -134,7 +133,9 @@ afterAll(async () => {
   await managerClose().catch(() => {});
   await testerClose().catch(() => {});
   await daemonStop().catch(() => {});
-  await rm(openUserHome, { recursive: true, force: true });
+  if (openUserHome) {
+    await rm(openUserHome, { recursive: true, force: true }).catch(() => {});
+  }
 });
 
 describe('Manager flow — register project + persona + test + prepare_run', () => {
@@ -231,7 +232,6 @@ describe('Manager flow — register project + persona + test + prepare_run', () 
     expect(data._instruction).toContain('testerPrompt');
     runId = data.runId;
     testerToken = data.token;
-    testerPrompt = data.testerPrompt;
   });
 });
 
@@ -394,6 +394,3 @@ describe('Tester boundary — second begin_run attempt after complete', () => {
   });
 });
 
-// Suppress unused variable warning — testerPrompt is captured but not directly
-// asserted in a separate test (it's threaded through for potential future use).
-void testerPrompt;
