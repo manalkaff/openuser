@@ -12,7 +12,7 @@ export default [
       parser: tsParser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', 'packages/*/src/*.test.ts', 'packages/*/tests/integration/*.test.ts', 'packages/*/vitest.config.ts', 'packages/*/*.config.ts'],
+          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', 'packages/*/src/*.test.ts', 'packages/*/tests/integration/*.test.ts', 'packages/*/tests/*.test.ts', 'packages/*/vitest.config.ts', 'packages/*/*.config.ts'],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,

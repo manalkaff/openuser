@@ -67,6 +67,9 @@ importers:
         specifier: ^3.24
         version: 3.25.76
     devDependencies:
+      '@hono/node-server':
+        specifier: ^1.13
+        version: 1.19.14(hono@4.12.25)
       '@openuser/server':
         specifier: workspace:*
         version: link:../server
