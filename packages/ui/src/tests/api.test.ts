@@ -88,7 +88,7 @@ describe('api client', () => {
     );
     const result = await api.getProjects();
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('prj_test123456');
+    expect(result[0]!.id).toBe('prj_test123456');
   });
 
   it('createProject posts and returns project', async () => {
@@ -124,7 +124,7 @@ describe('api client', () => {
     );
     const result = await api.getRunEvents('run_test123456');
     expect(result).toHaveLength(1);
-    expect(result[0].kind).toBe('console');
+    expect(result[0]!.kind).toBe('console');
     expect(fetch).toHaveBeenCalledWith('/api/runs/run_test123456/events');
   });
 
@@ -134,7 +134,7 @@ describe('api client', () => {
     );
     const result = await api.getFindings({ severity: 'high', status: 'open' });
     expect(result).toHaveLength(1);
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    const calledUrl = vi.mocked(fetch).mock.calls[0]![0] as string;
     expect(calledUrl).toContain('severity=high');
     expect(calledUrl).toContain('status=open');
   });
@@ -180,5 +180,21 @@ describe('api client', () => {
     );
     const result = await api.promoteRun('run_test123456', { title: 'Promoted test' });
     expect(result.source).toBe('promoted_from_run');
+  });
+
+  it('deleteCheckpoint resolves undefined on 204', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(null, { status: 204 })
+    );
+    const result = await api.deleteCheckpoint('ckpt_abc');
+    expect(result).toBeUndefined();
+  });
+
+  it('deleteCheckpoint resolves on 200 with body', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true }), { status: 200 })
+    );
+    const result = await (api.deleteCheckpoint('ckpt_abc') as Promise<unknown>);
+    expect(result).toEqual({ ok: true });
   });
 });

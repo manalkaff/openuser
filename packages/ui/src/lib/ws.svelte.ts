@@ -94,6 +94,8 @@ function handleMessage(raw: string) {
   }
 
   _ws.events.push(evt);
+  // Cap event history to prevent unbounded growth over long sessions.
+  if (_ws.events.length > 1000) _ws.events.splice(0, _ws.events.length - 1000);
 
   const payload = evt.payload as Record<string, unknown>;
   const runId =
@@ -105,7 +107,7 @@ function handleMessage(raw: string) {
     if (!_ws.runSteps[runId]) {
       _ws.runSteps[runId] = [];
     }
-    _ws.runSteps[runId].push(step);
+    _ws.runSteps[runId]!.push(step);
   }
 
   if (evt.type === 'log.event' && runId) {
@@ -113,7 +115,7 @@ function handleMessage(raw: string) {
     if (!_ws.runLogEvents[runId]) {
       _ws.runLogEvents[runId] = [];
     }
-    _ws.runLogEvents[runId].push(logEvt);
+    _ws.runLogEvents[runId]!.push(logEvt);
   }
 
   if ((evt.type === 'run.updated' || evt.type === 'run.completed') && runId) {
@@ -162,7 +164,11 @@ function openSocket() {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function wsConnect() {
-  if (socket) return; // already connected
+  if (socket) return;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   openSocket();
 }
 
@@ -171,6 +177,7 @@ export function wsDisconnect() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+  reconnectDelay = 1000;
   socket?.close();
   socket = null;
   _ws.connected = false;

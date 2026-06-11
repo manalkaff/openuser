@@ -82,7 +82,7 @@ async function request<T>(
 ): Promise<T> {
   const res = init
     ? await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+        headers: { ...(init.headers ?? {}), 'Content-Type': 'application/json' },
         ...init,
       })
     : await fetch(url);
@@ -94,7 +94,9 @@ async function request<T>(
     } catch { /* ignore */ }
     throw new Error(msg);
   }
-  return res.json() as Promise<T>;
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 function qs(params: Record<string, string | undefined>): string {
