@@ -23,8 +23,8 @@ describe('annotateSnapshot', () => {
     expect(refs).toHaveLength(9);
 
     // each ref has sequential id
-    expect(refs[0].ref).toBe('e1');
-    expect(refs[8].ref).toBe('e9');
+    expect(refs[0]!.ref).toBe('e1');
+    expect(refs[8]!.ref).toBe('e9');
 
     // annotated text contains markers
     expect(annotated).toContain('[ref=e1]');
@@ -68,13 +68,13 @@ describe('annotateSnapshot', () => {
     const { refs } = annotateSnapshot(raw);
     expect(refs).toHaveLength(3);
     // first "OK" → occurrence 0, second "OK" → occurrence 1
-    expect(refs[0].role).toBe('button');
-    expect(refs[0].name).toBe('OK');
-    expect(refs[0].nth).toBe(0);
-    expect(refs[1].name).toBe('OK');
-    expect(refs[1].nth).toBe(1);
+    expect(refs[0]!.role).toBe('button');
+    expect(refs[0]!.name).toBe('OK');
+    expect(refs[0]!.nth).toBe(0);
+    expect(refs[1]!.name).toBe('OK');
+    expect(refs[1]!.nth).toBe(1);
     // "Cancel" is the first of its kind → nth 0
-    expect(refs[2].name).toBe('Cancel');
-    expect(refs[2].nth).toBe(0);
+    expect(refs[2]!.name).toBe('Cancel');
+    expect(refs[2]!.nth).toBe(0);
   });
 });
