@@ -11,7 +11,10 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: true,
+        projectService: {
+          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', 'packages/*/src/*.test.ts', 'packages/*/vitest.config.ts', 'packages/*/*.config.ts'],
+        },
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
@@ -28,6 +31,14 @@ export default [
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // Test files may import symbols purely to verify they are exported (smoke-test imports).
+    // Unused imports are allowed in test files as they serve as export-existence smoke tests.
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ];
