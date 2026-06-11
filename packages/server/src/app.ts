@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import type { Server } from 'node:http';
@@ -37,6 +37,11 @@ async function findFreePort(startPort: number, host: string): Promise<number> {
   const net = await import('node:net');
   return new Promise((resolve, reject) => {
     const tryPort = (port: number) => {
+      // Fix #4: bound the port search to startPort + 100
+      if (port > startPort + 100) {
+        reject(new Error(`No free port found in range ${startPort}-${startPort + 100}`));
+        return;
+      }
       const srv = net.createServer();
       srv.listen(port, host, () => {
         srv.close(() => resolve(port));
@@ -69,11 +74,10 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   // Health
   app.route('/', healthRouter(version));
 
-  // Static artifact serving
+  // Static artifact serving — Fix #5: use static imports, not dynamic import('node:fs')
   app.get('/artifacts/*', async (c) => {
     const url = new URL(c.req.url);
     const filePath = join(ctx.homeDir, 'artifacts', url.pathname.replace('/artifacts/', ''));
-    const { existsSync, readFileSync } = await import('node:fs');
     if (!existsSync(filePath)) {
       return c.json({ error: 'Not found' }, 404);
     }
@@ -104,7 +108,8 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   mkdirSync(join(homeDir, 'artifacts'), { recursive: true });
   mkdirSync(join(homeDir, 'checkpoints'), { recursive: true });
 
-  const db = openDatabase(homeDir);
+  // Fix #3: destructure both db and sqlite handle so we can close it on shutdown
+  const { db, sqlite } = openDatabase(homeDir);
   const settingsService = new SettingsService(db);
   const wsHub = new WsHub();
 
@@ -126,8 +131,6 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   const startPort = opts.port ?? DEFAULT_PORT;
   const port = await findFreePort(startPort, host);
 
-  writeDaemonJson(homeDir, port, version);
-
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: app as never });
 
   // Wire WS endpoint
@@ -146,17 +149,32 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     })),
   );
 
-  const server = serve({ fetch: app.fetch, port, hostname: host, createServer: createHttpServer }, () => {
-    // listening
-  }) as unknown as Server;
+  // Fix #2: wrap serve() in a Promise that resolves only after the listening callback fires,
+  // and write daemon.json inside that callback so consumers never hit ECONNREFUSED.
+  const server = await new Promise<Server>((resolve) => {
+    const httpServer = serve(
+      { fetch: app.fetch, port, hostname: host, createServer: createHttpServer },
+      () => {
+        // Server is now actually listening
+        writeDaemonJson(homeDir, port, version);
+        resolve(httpServer as unknown as Server);
+      },
+    ) as unknown as Server;
+  });
+
   injectWebSocket(server);
 
   return {
     server,
     port,
+    // Fix #3: close sqlite handle after the HTTP server closes
     close: () =>
       new Promise<void>((resolve, reject) => {
-        server.close((err) => (err ? reject(err) : resolve()));
+        server.close((err) => {
+          sqlite.close();
+          if (err) reject(err);
+          else resolve();
+        });
       }),
   };
 }

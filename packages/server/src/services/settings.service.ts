@@ -21,7 +21,14 @@ export class SettingsService {
     const rows = this.db.select().from(settings).all();
     const result: Record<string, unknown> = { ...SETTINGS_DEFAULTS };
     for (const row of rows) {
-      result[row.key] = row.value;
+      const key = row.key as keyof SettingsShape;
+      const fallback = SETTINGS_DEFAULTS[key];
+      // Fix #6: defensive typeof guard — fall back to default if stored type doesn't match
+      if (typeof row.value !== typeof fallback) {
+        result[row.key] = fallback;
+      } else {
+        result[row.key] = row.value;
+      }
     }
     return result as unknown as SettingsShape;
   }
@@ -34,6 +41,11 @@ export class SettingsService {
       .get();
     if (row === undefined) {
       return SETTINGS_DEFAULTS[key];
+    }
+    // Fix #6: defensive typeof guard — fall back to default if stored type doesn't match
+    const fallback = SETTINGS_DEFAULTS[key];
+    if (typeof row.value !== typeof fallback) {
+      return fallback;
     }
     return row.value as SettingsShape[K];
   }
