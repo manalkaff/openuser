@@ -50,10 +50,10 @@ export type PageSnapshot = z.infer<typeof PageSnapshotSchema>;
 export const LogEventSchema = z.object({
   id: z.string(),
   runId: z.string(),
-  stepIdx: z.number(),
+  stepIdx: z.number().int(),
   kind: z.enum(['console', 'network']),
   level: z.string().nullable(),
   payload: z.record(z.unknown()),
-  createdAt: z.number(),
+  createdAt: z.string(),
 });
 export type LogEvent = z.infer<typeof LogEventSchema>;

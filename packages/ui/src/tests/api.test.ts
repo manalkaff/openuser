@@ -14,7 +14,7 @@ const mockProject: Project = {
   baseUrl: 'http://localhost:3000',
   environments: [],
   defaultViewport: { width: 1280, height: 720 },
-  createdAt: 1700000000000,
+  createdAt: '2023-11-14T22:13:20.000Z',
 };
 
 const mockRun: Run = {
@@ -32,9 +32,9 @@ const mockRun: Run = {
   agentLabel: null,
   tokenHash: 'hash123',
   videoPath: null,
-  startedAt: 1700000000000,
+  startedAt: '2023-11-14T22:13:20.000Z',
   finishedAt: null,
-  createdAt: 1700000000000,
+  createdAt: '2023-11-14T22:13:20.000Z',
 };
 
 const mockFinding: Finding = {
@@ -48,7 +48,7 @@ const mockFinding: Finding = {
   description: 'I clicked the checkout button and nothing happened.',
   evidence: {},
   status: 'open',
-  createdAt: 1700000000000,
+  createdAt: '2023-11-14T22:13:20.000Z',
 };
 
 const mockLogEvent: LogEvent = {
@@ -58,7 +58,7 @@ const mockLogEvent: LogEvent = {
   kind: 'console',
   level: 'error',
   payload: { message: 'Uncaught TypeError: Cannot read property' },
-  createdAt: 1700000000000,
+  createdAt: '2023-11-14T22:13:20.000Z',
 };
 
 describe('api client', () => {
@@ -174,7 +174,7 @@ describe('api client', () => {
   it('promoteRun posts title + returns Test', async () => {
     const mockTest = { id: 'tst_abc', title: 'Promoted test', goal: 'test checkout',
       projectId: 'prj_test123456', priority: 'medium', tags: [], source: 'promoted_from_run',
-      archived: false, createdAt: 1700000000000 };
+      archived: false, createdAt: '2023-11-14T22:13:20.000Z' };
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify(mockTest), { status: 200 })
     );

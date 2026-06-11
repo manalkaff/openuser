@@ -1,6 +1,7 @@
 /**
  * Entity types — row shapes returned by the REST API.
- * These mirror the DB schema's $inferSelect shapes with timestamp_ms → number.
+ * Timestamp fields are ISO date STRINGS on the wire (Drizzle timestamp_ms → Date →
+ * Hono c.json() → ISO string), matching the mcp package's wire-types.
  */
 import type {
   PersonaIdentity,
@@ -25,7 +26,7 @@ export type Project = {
   baseUrl: string;
   environments: { name: string; url: string }[];
   defaultViewport: { width: number; height: number };
-  createdAt: number;
+  createdAt: string;
 };
 
 export type Persona = {
@@ -38,7 +39,7 @@ export type Persona = {
   knowledge: PersonaKnowledge;
   notes: string | null;
   archived: boolean;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type Checkpoint = {
@@ -50,7 +51,7 @@ export type Checkpoint = {
   storageStatePath: string;
   journey: { notes: string; savedAtStep: number; url: string };
   createdFromRunId: string | null;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type Test = {
@@ -65,7 +66,7 @@ export type Test = {
   tags: string[];
   source: TestSource;
   archived: boolean;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type Run = {
@@ -83,9 +84,9 @@ export type Run = {
   agentLabel: string | null;
   tokenHash: string;
   videoPath: string | null;
-  startedAt: number | null;
-  finishedAt: number | null;
-  createdAt: number;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
 };
 
 export type Step = {
@@ -100,7 +101,7 @@ export type Step = {
   error: string | null;
   note: string | null;
   durationMs: number | null;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type Finding = {
@@ -114,5 +115,5 @@ export type Finding = {
   description: string;
   evidence: FindingEvidence;
   status: FindingStatus;
-  createdAt: number;
+  createdAt: string;
 };

@@ -104,7 +104,7 @@ describe('ws store', () => {
     wsStore.wsConnect();
     MockWebSocket.instances[0].simulateOpen();
     const step = { id: 'stp_1', runId: 'run_xyz', idx: 0, kind: 'navigate',
-      description: 'navigate to home', status: 'ok', createdAt: 1700000000000 };
+      description: 'navigate to home', status: 'ok', createdAt: '2023-11-14T22:13:20.000Z' };
     MockWebSocket.instances[0].simulateMessage({
       channel: 'run:run_xyz',
       type: 'step.created',
@@ -119,7 +119,7 @@ describe('ws store', () => {
     wsStore.wsConnect();
     MockWebSocket.instances[0].simulateOpen();
     const evt = { id: 'evt_1', runId: 'run_xyz', stepIdx: 0, kind: 'console',
-      level: 'error', payload: { message: 'err' }, createdAt: 1700000000000 };
+      level: 'error', payload: { message: 'err' }, createdAt: '2023-11-14T22:13:20.000Z' };
     MockWebSocket.instances[0].simulateMessage({
       channel: 'run:run_xyz',
       type: 'log.event',

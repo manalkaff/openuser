@@ -56,9 +56,16 @@ export const wsRunLogEvents: Record<string, LogEvent[]> = _ws.runLogEvents;
 export const wsRunStatus: Record<string, RunStatusUpdate> = _ws.runStatus;
 
 /**
- * Whether the WebSocket is currently connected.
+ * Reactive connection + accumulation state. In Svelte components, read
+ * `wsState.connected` for live reactivity. `wsIsConnected()` is a
+ * non-reactive snapshot for imperative checks.
  */
 export const wsState: { connected: boolean } = _ws;
+
+/** Non-reactive snapshot of the current WebSocket connection status. */
+export function wsIsConnected(): boolean {
+  return _ws.connected;
+}
 
 // ── Internal state (not reactive) ────────────────────────────────────────────
 
