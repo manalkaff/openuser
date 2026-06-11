@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
 import { logEvents } from '../db/schema.js';
 import type { ConsoleEvent, NetworkEvent } from '../runner/types.js';
@@ -89,8 +89,9 @@ export class LogPipelineService {
       .select()
       .from(logEvents)
       .where(eq(logEvents.runId, runId))
-      .orderBy(logEvents.createdAt)
+      .orderBy(desc(logEvents.createdAt))
+      .limit(limit)
       .all()
-      .slice(-limit);
+      .reverse();
   }
 }

@@ -6,13 +6,12 @@ import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
 import { personas, checkpoints } from '../../db/schema.js';
 import { createRunnerSession, defaultRunnerKind } from '../../runner/factory.js';
-import { LogPipelineService } from '../../services/log-pipeline.service.js';
+import type { LogPipelineService } from '../../services/log-pipeline.service.js';
 import { RunLifecycleService } from '../../services/run-lifecycle.service.js';
 
-export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions) {
+export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions, logPipeline: LogPipelineService) {
   const app = new Hono<{ Variables: TesterVariables }>();
   const authMiddleware = makeTokenAuth(ctx.db, activeSessions);
-  const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
   const lifecycle = new RunLifecycleService(ctx.db, ctx.wsHub);
 
   app.post('/api/tester/begin', authMiddleware, async (c) => {
@@ -29,10 +28,16 @@ export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions) 
       const res = await fetch(run.baseUrlResolved, { signal: controller.signal });
       clearTimeout(timeout);
       // Any HTTP response (even 4xx) means the server is up
-      if (!res.ok && res.status >= 500) {
+      if (res.status >= 500) {
         return c.json({ error: `Target app returned ${res.status} — is it running at ${run.baseUrlResolved}?` }, 422);
       }
-    } catch {
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') {
+        return c.json(
+          { error: `Target app at ${run.baseUrlResolved} did not respond within the timeout` },
+          422,
+        );
+      }
       return c.json(
         { error: `Target app unreachable at ${run.baseUrlResolved} — start your dev server first` },
         422,

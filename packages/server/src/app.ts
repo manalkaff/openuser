@@ -99,7 +99,7 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
   const watchdogReset = ctx.watchdogReset ?? ((_id: string) => {});
   const watchdogCancel = ctx.watchdogCancel ?? ((_id: string) => {});
-  app.route('/', beginRouter(ctx, ctx.activeSessions));
+  app.route('/', beginRouter(ctx, ctx.activeSessions, logPipeline));
   app.route('/', snapshotRouter(ctx, ctx.activeSessions));
   app.route('/', actionRouter(ctx, ctx.activeSessions, logPipeline, watchdogReset));
   app.route('/', screenshotRouter(ctx, ctx.activeSessions));

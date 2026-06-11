@@ -7,7 +7,6 @@ import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
 import { findings } from '../../db/schema.js';
 import { RunLifecycleService } from '../../services/run-lifecycle.service.js';
-import type { Verdict } from '../../db/schema.js';
 import { TesterCompleteBodySchema } from '@openuser/shared';
 
 export function completeRouter(
@@ -37,7 +36,7 @@ export function completeRouter(
       activeSessions.delete(run.id);
     }
 
-    const status = lifecycle.finalize(run.id, body.verdict as Verdict, body.summary, videoPath);
+    const status = lifecycle.finalize(run.id, body.verdict, body.summary, videoPath);
 
     const allFindings = ctx.db.select().from(findings).where(eq(findings.runId, run.id)).all();
 

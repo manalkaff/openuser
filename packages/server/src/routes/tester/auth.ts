@@ -8,7 +8,7 @@ import type { TesterVariables } from './context.js';
 
 export type ActiveSessions = Map<string, RunnerSession>;
 
-export function makeTokenAuth(db: DB, activeSessions: ActiveSessions): MiddlewareHandler<{ Variables: TesterVariables }> {
+export function makeTokenAuth(db: DB, _activeSessions: ActiveSessions): MiddlewareHandler<{ Variables: TesterVariables }> {
   return async (c, next) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -31,10 +31,7 @@ export function makeTokenAuth(db: DB, activeSessions: ActiveSessions): Middlewar
       return c.json({ error: 'Token has expired (run is no longer active)' }, 401);
     }
 
-    const session = activeSessions.get(run.id);
-
     c.set('run', run);
-    c.set('runnerSession', session ?? null);
     await next();
   };
 }

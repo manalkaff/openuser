@@ -12,7 +12,7 @@ import { steps } from '../../db/schema.js';
 import type { StepKind } from '../../db/schema.js';
 import type { LogPipelineService } from '../../services/log-pipeline.service.js';
 import { TesterActionRequestSchema } from '@openuser/shared';
-import type { PageSnapshot, TesterAction } from '@openuser/shared';
+import type { PageSnapshot } from '@openuser/shared';
 
 export function actionRouter(
   ctx: ServerContext,
@@ -40,7 +40,7 @@ export function actionRouter(
     watchdogReset(run.id);
 
     const startMs = Date.now();
-    const { note, ...action } = body as TesterAction & { note?: string };
+    const { note, ...action } = body;
 
     let result: { snapshot: PageSnapshot; screenshotPath: string; pageUrl: string } | null = null;
     let actionError: string | null = null;
