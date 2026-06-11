@@ -1,20 +1,23 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
-import { serveStatic } from '@hono/node-server/serve-static';
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import type { Server } from 'node:http';
 import { openDatabase, type DB } from './db/client.js';
 import { SettingsService } from './services/settings.service.js';
+import { WatchdogService } from './services/watchdog.service.js';
+import { LogPipelineService } from './services/log-pipeline.service.js';
+import { WsHub } from './ws/hub.js';
 import { healthRouter } from './routes/health.js';
 import { projectsRouter } from './routes/projects.js';
 import { personasRouter } from './routes/personas.js';
 import { testsRouter } from './routes/tests.js';
 import { runsRouter } from './routes/runs.js';
-import { WsHub } from './ws/hub.js';
-import type { ActiveSessions } from './routes/tester/auth.js';
+import { findingsRouter } from './routes/findings.js';
+import { checkpointsRouter } from './routes/checkpoints.js';
+import { settingsRouter } from './routes/settings.js';
 import { beginRouter } from './routes/tester/begin.js';
 import { snapshotRouter } from './routes/tester/snapshot.js';
 import { actionRouter } from './routes/tester/action.js';
@@ -22,8 +25,9 @@ import { screenshotRouter } from './routes/tester/screenshot.js';
 import { findingRouter } from './routes/tester/finding.js';
 import { checkpointTesterRouter } from './routes/tester/checkpoint.js';
 import { completeRouter } from './routes/tester/complete.js';
-import { LogPipelineService } from './services/log-pipeline.service.js';
 import type { RunnerSession } from './runner/types.js';
+
+export type ActiveSessions = Map<string, RunnerSession>;
 
 export interface ServerOptions {
   homeDir: string;
@@ -51,10 +55,24 @@ export interface ServerInstance {
 export const DEFAULT_PORT = 8737;
 
 async function findFreePort(startPort: number, host: string): Promise<number> {
+  // If startPort is 0, let the OS pick an ephemeral port
+  if (startPort === 0) {
+    const net = await import('node:net');
+    return new Promise((resolve, reject) => {
+      const srv = net.createServer();
+      srv.listen(0, host, () => {
+        const addr = srv.address() as { port: number } | null;
+        srv.close(() => {
+          if (addr) resolve(addr.port);
+          else reject(new Error('Could not determine ephemeral port'));
+        });
+      });
+      srv.on('error', reject);
+    });
+  }
   const net = await import('node:net');
   return new Promise((resolve, reject) => {
     const tryPort = (port: number) => {
-      // Fix #4: bound the port search to startPort + 100
       if (port > startPort + 100) {
         reject(new Error(`No free port found in range ${startPort}-${startPort + 100}`));
         return;
@@ -76,30 +94,32 @@ async function findFreePort(startPort: number, host: string): Promise<number> {
 }
 
 function writeDaemonJson(homeDir: string, port: number, version: string): void {
-  const daemonJson = {
-    port,
-    pid: process.pid,
-    version,
-    startedAt: new Date().toISOString(),
-  };
-  writeFileSync(join(homeDir, 'daemon.json'), JSON.stringify(daemonJson, null, 2));
+  writeFileSync(
+    join(homeDir, 'daemon.json'),
+    JSON.stringify({ port, pid: process.pid, version, startedAt: new Date().toISOString() }, null, 2),
+  );
 }
 
 export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   const app = new Hono();
 
-  // Health
+  // Shared services passed to routes
+  const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
+  const watchdogReset = (runId: string) => ctx.watchdogReset?.(runId);
+  const watchdogCancel = (runId: string) => ctx.watchdogCancel?.(runId);
+
+  // Manager routes (no auth)
   app.route('/', healthRouter(version));
   app.route('/', projectsRouter(ctx));
   app.route('/', personasRouter(ctx));
   app.route('/', testsRouter(ctx));
   app.route('/', runsRouter(ctx));
+  app.route('/', findingsRouter(ctx));
+  app.route('/', checkpointsRouter(ctx));
+  app.route('/', settingsRouter(ctx));
 
-  // Tester routes
-  const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
-  const watchdogReset = ctx.watchdogReset ?? ((_id: string) => {});
-  const watchdogCancel = ctx.watchdogCancel ?? ((_id: string) => {});
-  app.route('/', beginRouter(ctx, ctx.activeSessions, logPipeline));
+  // Tester routes (Bearer token auth)
+  app.route('/', beginRouter(ctx, ctx.activeSessions));
   app.route('/', snapshotRouter(ctx, ctx.activeSessions));
   app.route('/', actionRouter(ctx, ctx.activeSessions, logPipeline, watchdogReset));
   app.route('/', screenshotRouter(ctx, ctx.activeSessions));
@@ -107,10 +127,11 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   app.route('/', checkpointTesterRouter(ctx, ctx.activeSessions, watchdogReset));
   app.route('/', completeRouter(ctx, ctx.activeSessions, watchdogCancel));
 
-  // Static artifact serving — Fix #5: use static imports, not dynamic import('node:fs')
+  // Static artifact serving
   app.get('/artifacts/*', async (c) => {
-    const url = new URL(c.req.url);
-    const filePath = join(ctx.homeDir, 'artifacts', url.pathname.replace('/artifacts/', ''));
+    const { existsSync, readFileSync } = await import('node:fs');
+    const urlPath = new URL(c.req.url).pathname;
+    const filePath = join(ctx.homeDir, 'artifacts', urlPath.replace('/artifacts/', ''));
     if (!existsSync(filePath)) {
       return c.json({ error: 'Not found' }, 404);
     }
@@ -127,9 +148,27 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
     });
   });
 
-  // Static SPA (when uiDir is set)
+  // Static SPA (when uiDir is set via OPENUSER_UI_DIR env)
   if (uiDir) {
-    app.use('/*', serveStatic({ root: uiDir }));
+    app.use('/*', async (c) => {
+      const { existsSync, readFileSync } = await import('node:fs');
+      const urlPath = new URL(c.req.url).pathname;
+      let filePath = join(uiDir, urlPath === '/' ? 'index.html' : urlPath);
+      if (!existsSync(filePath)) {
+        filePath = join(uiDir, 'index.html'); // SPA fallback
+      }
+      if (!existsSync(filePath)) return c.json({ error: 'Not found' }, 404);
+      const buf = readFileSync(filePath);
+      const ext = filePath.split('.').pop() ?? 'html';
+      const mimeMap: Record<string, string> = {
+        html: 'text/html',
+        js: 'application/javascript',
+        css: 'text/css',
+        svg: 'image/svg+xml',
+        ico: 'image/x-icon',
+      };
+      return new Response(buf, { headers: { 'Content-Type': mimeMap[ext] ?? 'application/octet-stream' } });
+    });
   }
 
   return app;
@@ -141,15 +180,30 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   mkdirSync(join(homeDir, 'artifacts'), { recursive: true });
   mkdirSync(join(homeDir, 'checkpoints'), { recursive: true });
 
-  // Fix #3: destructure both db and sqlite handle so we can close it on shutdown
   const { db, sqlite } = openDatabase(homeDir);
   const settingsService = new SettingsService(db);
   const wsHub = new WsHub();
+  const activeSessions: ActiveSessions = new Map();
 
-  const activeSessions: Map<string, RunnerSession> = new Map();
-  const ctx: ServerContext = { db, homeDir, settings: settingsService, wsHub, activeSessions };
+  // Watchdog needs to know about activeSessions at construction time
+  const watchdog = new WatchdogService(
+    db,
+    homeDir,
+    wsHub,
+    activeSessions,
+    () => settingsService.get('watchdogMinutes'),
+  );
 
-  // Read version from package.json (bundled at build time)
+  const ctx: ServerContext = {
+    db,
+    homeDir,
+    settings: settingsService,
+    wsHub,
+    activeSessions,
+    watchdogReset: (id) => watchdog.reset(id),
+    watchdogCancel: (id) => watchdog.cancel(id),
+  };
+
   let version = '0.0.1';
   try {
     const { createRequire } = await import('node:module');
@@ -160,10 +214,12 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     // fallback
   }
 
-  const app = buildApp(ctx, version, opts.uiDir);
+  const uiDir = opts.uiDir ?? process.env['OPENUSER_UI_DIR'];
+  const app = buildApp(ctx, version, uiDir);
+
   const host = opts.host ?? '127.0.0.1';
   const startPort = opts.port ?? DEFAULT_PORT;
-  const port = await findFreePort(startPort, host);
+  const listenPort = startPort === 0 ? 0 : await findFreePort(startPort, host);
 
   const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: app as never });
 
@@ -183,15 +239,16 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     })),
   );
 
-  // Fix #2: wrap serve() in a Promise that resolves only after the listening callback fires,
-  // and write daemon.json inside that callback so consumers never hit ECONNREFUSED.
-  const server = await new Promise<Server>((resolve) => {
+  // Wrap serve() in a Promise to ensure the server is listening before resolving.
+  // When listenPort is 0 (OS-assigned), read the actual port from server.address().
+  const { server, port } = await new Promise<{ server: Server; port: number }>((resolve) => {
     const httpServer = serve(
-      { fetch: app.fetch, port, hostname: host, createServer: createHttpServer },
+      { fetch: app.fetch, port: listenPort, hostname: host, createServer: createHttpServer },
       () => {
-        // Server is now actually listening
-        writeDaemonJson(homeDir, port, version);
-        resolve(httpServer as unknown as Server);
+        const addr = (httpServer as unknown as Server).address() as { port: number } | null;
+        const actualPort = addr?.port ?? listenPort;
+        writeDaemonJson(homeDir, actualPort, version);
+        resolve({ server: httpServer as unknown as Server, port: actualPort });
       },
     ) as unknown as Server;
   });
@@ -201,7 +258,6 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   return {
     server,
     port,
-    // Fix #3: close sqlite handle after the HTTP server closes
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((err) => {
