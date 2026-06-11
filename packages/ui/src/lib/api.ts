@@ -58,10 +58,10 @@ export type RunSummary = {
   createdAt: number;
 };
 
-export type ProjectSummary = Project & { openFindings: number; lastRunAt: number | null };
+export type ProjectSummary = Project & { openFindings: number; lastRunAt: string | null };
 
 export type TestWithLastRun = Test & {
-  lastRun: { id: string; status: RunStatus; finishedAt: number | null } | null;
+  lastRun: { id: string; status: RunStatus; finishedAt: string | null } | null;
 };
 
 export type HealthResponse = { ok: boolean; version: string };
@@ -145,7 +145,10 @@ export function createPersona(projectId: string, body: CreatePersonaBody): Promi
   });
 }
 
-export function patchPersona(id: string, body: Partial<CreatePersonaBody>): Promise<Persona> {
+export function patchPersona(
+  id: string,
+  body: Partial<CreatePersonaBody> & { archived?: boolean },
+): Promise<Persona> {
   return request<Persona>(`/api/personas/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 }
 
