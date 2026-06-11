@@ -1,7 +1,6 @@
 {
   "name": "@openuser/server",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
   "exports": {
     ".": {
@@ -9,25 +8,33 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "test": "echo \"No tests yet\" && exit 0",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13",
+    "@hono/node-ws": "^1.0",
     "@openuser/shared": "workspace:*",
-    "@hono/node-server": "^1.13.0",
-    "@hono/node-ws": "^1.0.0",
-    "better-sqlite3": "^11.0.0",
-    "drizzle-orm": "^0.44.0",
-    "hono": "^4.7.0",
-    "nanoid": "^5.0.0",
-    "zod": "^3.24.0"
+    "better-sqlite3": "^11",
+    "drizzle-orm": "^0.44",
+    "hono": "^4.7",
+    "nanoid": "^5",
+    "zod": "^3.24"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.0.0",
-    "drizzle-kit": "^0.31.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^20",
+    "drizzle-kit": "^0.31",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3",
+    "ws": "^8",
+    "@types/ws": "^8"
   }
 }
