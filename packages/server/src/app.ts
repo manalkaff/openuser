@@ -11,6 +11,7 @@ import { SettingsService } from './services/settings.service.js';
 import { healthRouter } from './routes/health.js';
 import { projectsRouter } from './routes/projects.js';
 import { personasRouter } from './routes/personas.js';
+import { testsRouter } from './routes/tests.js';
 import { WsHub } from './ws/hub.js';
 
 export interface ServerOptions {
@@ -77,6 +78,7 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   app.route('/', healthRouter(version));
   app.route('/', projectsRouter(ctx));
   app.route('/', personasRouter(ctx));
+  app.route('/', testsRouter(ctx));
 
   // Static artifact serving — Fix #5: use static imports, not dynamic import('node:fs')
   app.get('/artifacts/*', async (c) => {
