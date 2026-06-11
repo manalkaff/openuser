@@ -167,7 +167,7 @@ describe.skipIf(!chromiumAvailable)(
         // colon is captured in the regex as an optional character.
         const linkRefMatch = snap0.tree.match(/link\s+"Go to Form":?\s*\[ref=(e\d+)\]/);
         expect(linkRefMatch).not.toBeNull();
-        const linkRef = linkRefMatch![1];
+        const linkRef = linkRefMatch![1]!;
 
         const result = await runner.act({ kind: 'click', ref: linkRef });
         expect(result.snapshot.url).toContain('/form.html');
@@ -204,12 +204,12 @@ describe.skipIf(!chromiumAvailable)(
         // element has nested content (placeholder shown as /placeholder).
         const emailMatch = formSnap.tree.match(/textbox\s+"Email address":?\s*\[ref=(e\d+)\]/);
         expect(emailMatch).not.toBeNull();
-        const emailRef = emailMatch![1];
+        const emailRef = emailMatch![1]!;
 
         // Find Submit button ref
         const submitMatch = formSnap.tree.match(/button\s+"Submit Form":?\s*\[ref=(e\d+)\]/);
         expect(submitMatch).not.toBeNull();
-        const submitRef = submitMatch![1];
+        const submitRef = submitMatch![1]!;
 
         // Type into email field (no submit on type)
         await runner.act({ kind: 'type', ref: emailRef, text: 'test@example.com' });
@@ -245,7 +245,7 @@ describe.skipIf(!chromiumAvailable)(
         // Find the "Trigger Error" button ref
         const btnMatch = snap0.tree.match(/button\s+"Trigger Error"\s+\[ref=(e\d+)\]/);
         expect(btnMatch).not.toBeNull();
-        const btnRef = btnMatch![1];
+        const btnRef = btnMatch![1]!;
 
         await runner.act({ kind: 'click', ref: btnRef });
 
@@ -267,7 +267,7 @@ describe.skipIf(!chromiumAvailable)(
       const runner = new PlaywrightRunner();
       const videoDir = await makeTempDir('network');
 
-      const networkEvents: Array<{ kind: string; url: string; status?: number }> = [];
+      const networkEvents: Array<{ kind: string; url: string; status: number | undefined }> = [];
 
       try {
         await runner.begin({
@@ -322,7 +322,7 @@ describe.skipIf(!chromiumAvailable)(
         // Submit the form to set localStorage key ou_test_submitted
         const submitMatch = formSnap.tree.match(/button\s+"Submit Form":?\s*\[ref=(e\d+)\]/);
         expect(submitMatch).not.toBeNull();
-        await runner1.act({ kind: 'click', ref: submitMatch![1] });
+        await runner1.act({ kind: 'click', ref: submitMatch![1]! });
 
         // Wait a moment to ensure localStorage write has settled before saving state
         await runner1.act({ kind: 'wait', seconds: 1 });
@@ -484,7 +484,7 @@ describe.skipIf(!chromiumAvailable)(
         // element has nested content (options shown as children).
         const selectMatch = formSnap.tree.match(/combobox\s+"Country":?\s*\[ref=(e\d+)\]/);
         expect(selectMatch).not.toBeNull();
-        const selectRef = selectMatch![1];
+        const selectRef = selectMatch![1]!;
 
         // Select "United Kingdom"
         const result = await runner.act({ kind: 'select', ref: selectRef, value: 'gb' });
