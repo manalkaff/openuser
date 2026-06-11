@@ -12,15 +12,32 @@
     onchange: (id: string) => void;
     children: Snippet;
   } = $props();
+
+  function handleTablistKeydown(e: KeyboardEvent) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const currentIndex = tabs.findIndex((t) => t.id === active);
+    if (currentIndex === -1) return;
+    let nextIndex: number;
+    if (e.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    }
+    const nextTab = tabs[nextIndex];
+    if (nextTab !== undefined) {
+      onchange(nextTab.id);
+    }
+  }
 </script>
 
 <div>
   <!-- Tab bar -->
-  <div class="flex gap-1 border-b border-zinc-800 mb-4" role="tablist">
+  <div class="flex gap-1 border-b border-zinc-800 mb-4" role="tablist" tabindex="0" onkeydown={handleTablistKeydown}>
     {#each tabs as tab (tab.id)}
       <button
         type="button"
         role="tab"
+        id="tab-{tab.id}"
         aria-selected={active === tab.id}
         aria-controls="panel-{tab.id}"
         onclick={() => onchange(tab.id)}
@@ -41,7 +58,7 @@
   </div>
 
   <!-- Tab panel -->
-  <div id="panel-{active}" role="tabpanel">
+  <div id="panel-{active}" role="tabpanel" aria-labelledby="tab-{active}">
     {@render children()}
   </div>
 </div>

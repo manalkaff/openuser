@@ -38,6 +38,12 @@
           <dd class="text-zinc-300 font-mono text-xs">{persona.identity.credentials.username}</dd>
         </div>
       {/if}
+      {#if persona.identity.signupInstructions}
+        <div class="flex gap-2">
+          <dt class="text-zinc-500 w-24 shrink-0">Signup</dt>
+          <dd class="text-zinc-300">{persona.identity.signupInstructions}</dd>
+        </div>
+      {/if}
     </dl>
   </section>
 

@@ -15,7 +15,7 @@
     size?: 'sm' | 'md' | 'lg' | 'xl';
   } = $props();
 
-  const sizeClasses: Record<string, string> = {
+  const sizeClasses: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
     sm: 'max-w-sm',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
@@ -23,8 +23,23 @@
   };
 
   function handleKeydown(e: KeyboardEvent) {
+    if (!open) return;
     if (e.key === 'Escape') onclose();
   }
+
+  let panelEl = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      panelEl?.focus();
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -45,7 +60,7 @@
     ></div>
 
     <!-- Panel -->
-    <div class="relative z-10 w-full {sizeClasses[size]} rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl">
+    <div bind:this={panelEl} tabindex="-1" class="relative z-10 w-full {sizeClasses[size]} rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl focus:outline-none">
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <h2 id="modal-title" class="text-lg font-semibold text-zinc-100">{title}</h2>
