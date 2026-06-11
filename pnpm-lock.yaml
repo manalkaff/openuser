@@ -58,21 +58,33 @@ importers:
   packages/mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.18.0
+        specifier: ^1.18
         version: 1.29.0(zod@3.25.76)
       '@openuser/shared':
         specifier: workspace:*
         version: link:../shared
       zod:
-        specifier: ^3.24.0
+        specifier: ^3.24
         version: 3.25.76
     devDependencies:
+      '@openuser/server':
+        specifier: workspace:*
+        version: link:../server
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      hono:
+        specifier: ^4.7
+        version: 4.12.25
+      tsup:
+        specifier: ^8
+        version: 8.5.1(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
       typescript:
-        specifier: ^5.7.0
+        specifier: ^5.7
         version: 5.9.3
       vitest:
-        specifier: ^3.0.0
-        version: 3.2.6(@types/node@25.9.3)(tsx@4.22.4)
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(tsx@4.22.4)
 
   packages/server:
     dependencies:
@@ -3136,7 +3148,7 @@ snapshots:
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
-      '@types/node': 20.19.43
+      '@types/node': 25.9.3
 
   '@types/chai@5.2.3':
     dependencies:
@@ -3163,7 +3175,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.43
+      '@types/node': 25.9.3
 
   '@typescript-eslint/eslint-plugin@8.61.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4)(typescript@5.9.3))(eslint@9.39.4)(typescript@5.9.3)':
     dependencies:
