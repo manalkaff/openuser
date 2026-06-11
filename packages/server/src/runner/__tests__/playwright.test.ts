@@ -56,7 +56,7 @@ async function startFixtureServer(): Promise<{
         );
 
         // Prevent path traversal
-        if (!filePath.startsWith(FIXTURE_DIR)) {
+        if (!filePath.startsWith(FIXTURE_DIR + path.sep)) {
           res.writeHead(403);
           res.end('Forbidden');
           return;
@@ -100,6 +100,19 @@ async function makeTempDir(prefix: string): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), `ou-test-${prefix}-`));
 }
 
+// ─── Default begin() options helper ──────────────────────────────────────────
+
+function defaultBeginOpts(baseUrl: string, videoDir: string) {
+  return {
+    baseUrl,
+    viewport: { width: 1280, height: 720 },
+    videoDir,
+    headed: false,
+    onConsole: () => {},
+    onNetwork: () => {},
+  };
+}
+
 // ─── Suite ───────────────────────────────────────────────────────────────────
 
 describe.skipIf(!chromiumAvailable)(
@@ -126,14 +139,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('snap');
 
       try {
-        const snapshot = await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        const snapshot = await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
         // index.html has a link "Go to Form" and a button "Trigger Error"
         expect(snapshot.tree).toMatch(/\[ref=e\d+\]/);
@@ -152,14 +158,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('click');
 
       try {
-        const snap0 = await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        const snap0 = await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
         // Find the ref for "Go to Form" link.
         // Playwright ariaSnapshot emits "link "Go to Form":" (with colon) when the
@@ -188,14 +187,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('type');
 
       try {
-        await runner.begin({
-          baseUrl: `${baseUrl}/form.html`,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        await runner.begin(defaultBeginOpts(`${baseUrl}/form.html`, videoDir));
 
         const formSnap = await runner.snapshot();
 
@@ -234,16 +226,12 @@ describe.skipIf(!chromiumAvailable)(
 
       try {
         const snap0 = await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
+          ...defaultBeginOpts(baseUrl, videoDir),
           onConsole: (e) => consoleEvents.push({ level: e.level, text: e.text }),
-          onNetwork: () => {},
         });
 
         // Find the "Trigger Error" button ref
-        const btnMatch = snap0.tree.match(/button\s+"Trigger Error"\s+\[ref=(e\d+)\]/);
+        const btnMatch = snap0.tree.match(/button\s+"Trigger Error":?\s*\[ref=(e\d+)\]/);
         expect(btnMatch).not.toBeNull();
         const btnRef = btnMatch![1]!;
 
@@ -271,11 +259,7 @@ describe.skipIf(!chromiumAvailable)(
 
       try {
         await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
+          ...defaultBeginOpts(baseUrl, videoDir),
           onNetwork: (e) =>
             networkEvents.push({ kind: e.kind, url: e.url, status: e.status }),
         });
@@ -308,14 +292,7 @@ describe.skipIf(!chromiumAvailable)(
       // ── Session 1: navigate to form, submit, save storageState ──────────
       const runner1 = new PlaywrightRunner();
       try {
-        await runner1.begin({
-          baseUrl: `${baseUrl}/form.html`,
-          viewport: { width: 1280, height: 720 },
-          videoDir: videoDir1,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        await runner1.begin(defaultBeginOpts(`${baseUrl}/form.html`, videoDir1));
 
         const formSnap = await runner1.snapshot();
 
@@ -324,7 +301,7 @@ describe.skipIf(!chromiumAvailable)(
         expect(submitMatch).not.toBeNull();
         await runner1.act({ kind: 'click', ref: submitMatch![1]! });
 
-        // Wait a moment to ensure localStorage write has settled before saving state
+        // Allow the submit navigation to complete before capturing storage state
         await runner1.act({ kind: 'wait', seconds: 1 });
 
         // Now save storageState (which includes the localStorage set by form submission)
@@ -349,13 +326,8 @@ describe.skipIf(!chromiumAvailable)(
       const runner2 = new PlaywrightRunner();
       try {
         const snap = await runner2.begin({
-          baseUrl: `${baseUrl}/result.html`,
-          viewport: { width: 1280, height: 720 },
+          ...defaultBeginOpts(`${baseUrl}/result.html`, videoDir2),
           storageStatePath,
-          videoDir: videoDir2,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
         });
 
         expect(snap.url).toContain('/result.html');
@@ -391,26 +363,23 @@ describe.skipIf(!chromiumAvailable)(
       const runner = new PlaywrightRunner();
       const videoDir = await makeTempDir('video');
 
-      await runner.begin({
-        baseUrl,
-        viewport: { width: 1280, height: 720 },
-        videoDir,
-        headed: false,
-        onConsole: () => {},
-        onNetwork: () => {},
-      });
+      try {
+        await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
-      // Do a small action to ensure there is something to record
-      await runner.act({ kind: 'wait', seconds: 1 });
+        // Do a small action to ensure there is something to record
+        await runner.act({ kind: 'wait', seconds: 1 });
 
-      const { videoPath } = await runner.close();
+        const { videoPath } = await runner.close();
 
-      expect(videoPath).toBeDefined();
-      expect(typeof videoPath).toBe('string');
+        expect(videoPath).toBeDefined();
+        expect(typeof videoPath).toBe('string');
 
-      // The file must actually exist on disk
-      const stat = await fs.stat(videoPath!);
-      expect(stat.size).toBeGreaterThan(0);
+        // The file must actually exist on disk
+        const stat = await fs.stat(videoPath!);
+        expect(stat.size).toBeGreaterThan(0);
+      } finally {
+        await runner.close();
+      }
     });
 
     // ── Test 8: stale ref returns the hint error ───────────────────────────
@@ -421,14 +390,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('stale');
 
       try {
-        const snap0 = await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        const snap0 = await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
         // Navigate away — this changes the page, making all old refs stale
         await runner.act({ kind: 'navigate', url: `${baseUrl}/form.html` });
@@ -455,14 +417,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('screenshots');
 
       try {
-        await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
         const result = await runner.act({ kind: 'wait', seconds: 1 });
 
@@ -484,14 +439,7 @@ describe.skipIf(!chromiumAvailable)(
       const videoDir = await makeTempDir('select');
 
       try {
-        await runner.begin({
-          baseUrl: `${baseUrl}/form.html`,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        await runner.begin(defaultBeginOpts(`${baseUrl}/form.html`, videoDir));
 
         const formSnap = await runner.snapshot();
 
@@ -507,7 +455,8 @@ describe.skipIf(!chromiumAvailable)(
 
         // After selection, snapshot should reflect current page state
         expect(result.pageUrl).toContain('/form.html');
-        expect(result.screenshotPath).toBeTruthy();
+        const stat = await fs.stat(result.screenshotPath);
+        expect(stat.size).toBeGreaterThan(0);
       } finally {
         await runner.close();
       }
@@ -522,14 +471,7 @@ describe.skipIf(!chromiumAvailable)(
       const shotsDir = path.join(videoDir, 'shots');
 
       try {
-        await runner.begin({
-          baseUrl,
-          viewport: { width: 1280, height: 720 },
-          videoDir,
-          headed: false,
-          onConsole: () => {},
-          onNetwork: () => {},
-        });
+        await runner.begin(defaultBeginOpts(baseUrl, videoDir));
 
         const { path: shotPath } = await runner.screenshot(shotsDir);
 
