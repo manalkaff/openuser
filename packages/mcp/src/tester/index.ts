@@ -358,23 +358,14 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
         'Take an on-demand screenshot of the current page for visual inspection. ' +
         'Use when the accessibility tree is insufficient (e.g. visual layout issues, charts, images). ' +
         'Returns the image.',
-      inputSchema: {
-        note: z.string().optional().describe('Optional note about why you are taking this screenshot'),
-      },
+      // Per contracts §9, browser_screenshot takes no input — POST /api/tester/screenshot
+      // has an empty body and records the shot on the server side.
+      inputSchema: {},
     },
-    async (input) => {
+    async () => {
       const sessionErr = requireSession();
       if (sessionErr) return sessionErr;
       try {
-        // If a note is provided, fire a snapshot action first so the note is recorded as a step
-        if (input.note) {
-          // Take a no-op snapshot to persist the note context (best-effort; ignore error)
-          try {
-            await testerSnapshot(getOpts());
-          } catch {
-            // ignore
-          }
-        }
         const result = await testerScreenshot(getOpts());
         // Fetch the image bytes from the artifacts endpoint
         // result.path is relative to the artifacts dir, e.g. "run_abc/shots/xyz.png"
