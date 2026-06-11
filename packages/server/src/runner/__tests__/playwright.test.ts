@@ -333,10 +333,17 @@ describe.skipIf(!chromiumAvailable)(
         await runner1.close();
       }
 
-      // Verify the storageState file was written
+      // ── (a) Assert the SAVED storageState JSON actually captured the localStorage entry ──
       const stateFileContent = await fs.readFile(storageStatePath, 'utf-8');
-      const stateJson = JSON.parse(stateFileContent);
-      expect(stateJson).toBeDefined();
+      const stateJson = JSON.parse(stateFileContent) as {
+        cookies: unknown[];
+        origins: Array<{ origin: string; localStorage?: Array<{ name: string; value: string }> }>;
+      };
+      const origins = stateJson.origins;
+      const hasKey = origins.some(
+        (o) => o.localStorage?.some((kv) => kv.name === 'ou_test_submitted' && kv.value === 'true'),
+      );
+      expect(hasKey).toBe(true);
 
       // ── Session 2: restore storageState, navigate to result, check localStorage ──
       const runner2 = new PlaywrightRunner();
@@ -351,18 +358,27 @@ describe.skipIf(!chromiumAvailable)(
           onNetwork: () => {},
         });
 
-        // result.html displays "localStorage: ou_test_submitted = true" if storage restored
-        // The aria tree should contain text about the storage status
-        // We verify by checking the snapshot tree or page content
         expect(snap.url).toContain('/result.html');
 
-        // The snapshot may not include paragraph text — verify via page evaluation
-        // We do this by acting (wait) and then re-reading the snapshot
         const finalSnap = await runner2.snapshot();
-        // The key test: if storageState was restored, result.html shows the storage value.
-        // Since ariaSnapshot includes text nodes in some implementations, check broadly.
-        // If not visible in tree, the test has confirmed the session didn't crash on restore.
         expect(finalSnap.url).toContain('result.html');
+
+        // ── (b) Prove the RESTORE side works: save storageState from session 2 and assert
+        //    the ou_test_submitted key is still present (proves restore round-trip, not just
+        //    that the session didn't crash — ariaSnapshot can't show paragraph text so we
+        //    use the state file as the observable).
+        const restoredStatePath = path.join(tmpDir, 'state2.json');
+        await runner2.saveStorageState(restoredStatePath);
+        const restoredFileContent = await fs.readFile(restoredStatePath, 'utf-8');
+        const restoredJson = JSON.parse(restoredFileContent) as {
+          cookies: unknown[];
+          origins: Array<{ origin: string; localStorage?: Array<{ name: string; value: string }> }>;
+        };
+        const restoredOrigins = restoredJson.origins;
+        const restoredHasKey = restoredOrigins.some(
+          (o) => o.localStorage?.some((kv) => kv.name === 'ou_test_submitted' && kv.value === 'true'),
+        );
+        expect(restoredHasKey).toBe(true);
       } finally {
         await runner2.close();
       }
