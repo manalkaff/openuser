@@ -10,6 +10,7 @@ import { openDatabase, type DB } from './db/client.js';
 import { SettingsService } from './services/settings.service.js';
 import { healthRouter } from './routes/health.js';
 import { projectsRouter } from './routes/projects.js';
+import { personasRouter } from './routes/personas.js';
 import { WsHub } from './ws/hub.js';
 
 export interface ServerOptions {
@@ -75,6 +76,7 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   // Health
   app.route('/', healthRouter(version));
   app.route('/', projectsRouter(ctx));
+  app.route('/', personasRouter(ctx));
 
   // Static artifact serving — Fix #5: use static imports, not dynamic import('node:fs')
   app.get('/artifacts/*', async (c) => {
