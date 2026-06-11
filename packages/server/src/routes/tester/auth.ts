@@ -1,14 +1,15 @@
-import type { Context, MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import type { DB } from '../../db/client.js';
 import { runs } from '../../db/schema.js';
 import type { RunnerSession } from '../../runner/types.js';
+import type { TesterVariables } from './context.js';
 
 export type ActiveSessions = Map<string, RunnerSession>;
 
-export function makeTokenAuth(db: DB, activeSessions: ActiveSessions): MiddlewareHandler {
-  return async (c: Context, next) => {
+export function makeTokenAuth(db: DB, activeSessions: ActiveSessions): MiddlewareHandler<{ Variables: TesterVariables }> {
+  return async (c, next) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return c.json({ error: 'Missing or invalid Authorization header' }, 401);
