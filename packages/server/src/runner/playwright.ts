@@ -82,7 +82,9 @@ export class PlaywrightRunner implements RunnerSession {
       if (
         msg.includes("Executable doesn't exist") ||
         msg.includes('browserType.launch') ||
-        msg.includes('playwright install')
+        msg.includes('playwright install') ||
+        msg.includes('is not installed') ||
+        msg.includes('distribution channel')
       ) {
         throw new Error(
           'Chromium browser not installed. Run: npx playwright install chromium',
@@ -103,19 +105,30 @@ export class PlaywrightRunner implements RunnerSession {
       ...(storageStatePath !== undefined ? { storageState: storageStatePath } : {}),
     };
 
-    this._context = await this._browser.newContext(contextOptions);
-    this._page = await this._context.newPage();
+    // Guard all post-launch steps so a partial failure doesn't leave an
+    // orphaned headless Chromium process (which the watchdog can never reap
+    // because the session was never stored in activeSessions).
+    try {
+      this._context = await this._browser.newContext(contextOptions);
+      this._page = await this._context.newPage();
 
-    // Attach listeners before navigation so no events are missed.
-    this._attachConsoleListener();
-    this._attachNetworkListeners();
+      // Attach listeners before navigation so no events are missed.
+      this._attachConsoleListener();
+      this._attachNetworkListeners();
 
-    // Navigate to base URL. Use waitUntil (not waitForLoadState which is a
-    // separate Page method); domcontentloaded is fast enough for initial load.
-    await this._page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-    await this._settleLoadState();
+      // Navigate to base URL. Use waitUntil (not waitForLoadState which is a
+      // separate Page method); domcontentloaded is fast enough for initial load.
+      await this._page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+      await this._settleLoadState();
 
-    return this._buildSnapshot();
+      return await this._buildSnapshot();
+    } catch (err) {
+      await this._browser.close().catch(() => {});
+      this._browser = null;
+      this._context = null;
+      this._page = null;
+      throw err;
+    }
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -396,6 +409,12 @@ export class PlaywrightRunner implements RunnerSession {
     });
 
     page.on('response', (resp) => {
+      // Capture stepIdx and timestamp synchronously at handler entry, BEFORE
+      // any await, so slow response-body streaming cannot advance _currentStepIdx
+      // to a later step and mis-attribute the event.
+      const capturedStepIdx = this._currentStepIdx;
+      const capturedTimestamp = Date.now();
+
       // async handler inside a sync event listener: errors are non-fatal.
       void (async () => {
         const req = resp.request();
@@ -425,8 +444,8 @@ export class PlaywrightRunner implements RunnerSession {
           status,
           resourceType,
           ...(bodySnippet !== undefined ? { bodySnippet } : {}),
-          stepIdx: this._currentStepIdx,
-          timestamp: Date.now(),
+          stepIdx: capturedStepIdx,
+          timestamp: capturedTimestamp,
         };
         this._onNetwork(event);
       })();
