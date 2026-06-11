@@ -6,14 +6,13 @@ import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
 import { personas, checkpoints } from '../../db/schema.js';
 import { createRunnerSession, defaultRunnerKind } from '../../runner/factory.js';
-import { LogPipelineService } from '../../services/log-pipeline.service.js';
+import type { LogPipelineService } from '../../services/log-pipeline.service.js';
 import { RunLifecycleService } from '../../services/run-lifecycle.service.js';
 
-export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions) {
+export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions, logPipeline: LogPipelineService) {
   const app = new Hono<{ Variables: TesterVariables }>();
   const authMiddleware = makeTokenAuth(ctx.db, activeSessions);
   const lifecycle = new RunLifecycleService(ctx.db, ctx.wsHub);
-  const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
 
   app.post('/api/tester/begin', authMiddleware, async (c) => {
     const run = c.get('run');

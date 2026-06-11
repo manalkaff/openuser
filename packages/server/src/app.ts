@@ -119,7 +119,7 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   app.route('/', settingsRouter(ctx));
 
   // Tester routes (Bearer token auth)
-  app.route('/', beginRouter(ctx, ctx.activeSessions));
+  app.route('/', beginRouter(ctx, ctx.activeSessions, logPipeline));
   app.route('/', snapshotRouter(ctx, ctx.activeSessions));
   app.route('/', actionRouter(ctx, ctx.activeSessions, logPipeline, watchdogReset));
   app.route('/', screenshotRouter(ctx, ctx.activeSessions));
