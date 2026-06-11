@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenUser Test Fixture — Home</title>
+</head>
+<body>
+  <h1>OpenUser Test Fixture</h1>
+  <p>Welcome to the test fixture mini-app.</p>
+
+  <nav>
+    <a href="/form.html">Go to Form</a>
+  </nav>
+
+  <section>
+    <button id="error-btn" type="button">Trigger Error</button>
+    <span id="error-status"></span>
+  </section>
+
+  <script>
+    // Button triggers a console.error — captured by PlaywrightRunner onConsole callback
+    document.getElementById('error-btn').addEventListener('click', function () {
+      console.error('intentional-test-error: button clicked');
+      document.getElementById('error-status').textContent = 'error triggered';
+    });
+
+    // Fetch a non-existent resource to trigger a failed network request (404)
+    // We do this on DOMContentLoaded so it fires on every page load.
+    document.addEventListener('DOMContentLoaded', function () {
+      fetch('/this-does-not-exist.json')
+        .then(function (r) {
+          // 404 response — Playwright treats this as a response with status 404
+          // NetworkEvent kind='response', status=404 captured by onNetwork callback
+          void r;
+        })
+        .catch(function () {
+          // network-level failure (if server is down) — captured as kind='failed'
+        });
+    });
+  </script>
+</body>
+</html>

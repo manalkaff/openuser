@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenUser Test Fixture — Form</title>
+</head>
+<body>
+  <h1>Test Form</h1>
+
+  <form id="test-form" action="/result.html" method="get">
+    <div>
+      <label for="email">Email address</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="you@example.com"
+        aria-label="Email address"
+      />
+    </div>
+
+    <div>
+      <label for="country">Country</label>
+      <select id="country" name="country" aria-label="Country">
+        <option value="">-- select --</option>
+        <option value="us">United States</option>
+        <option value="gb">United Kingdom</option>
+        <option value="de">Germany</option>
+      </select>
+    </div>
+
+    <div>
+      <input
+        type="checkbox"
+        id="agree"
+        name="agree"
+        aria-label="Agree to terms"
+      />
+      <label for="agree">Agree to terms</label>
+    </div>
+
+    <button type="submit">Submit Form</button>
+  </form>
+
+  <a href="/index.html">Back to Home</a>
+
+  <script>
+    // On form submit, write a localStorage key so storageState test can verify persistence
+    document.getElementById('test-form').addEventListener('submit', function () {
+      localStorage.setItem('ou_test_submitted', 'true');
+    });
+  </script>
+</body>
+</html>

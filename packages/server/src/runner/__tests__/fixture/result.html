@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenUser Test Fixture — Result</title>
+</head>
+<body>
+  <h1>Submission Result</h1>
+
+  <p id="submitted-msg">Form submitted successfully.</p>
+
+  <div id="storage-status"></div>
+
+  <a href="/index.html">Return to Home</a>
+
+  <script>
+    // Display the localStorage value so tests can assert on it
+    var stored = localStorage.getItem('ou_test_submitted');
+    if (stored) {
+      document.getElementById('storage-status').textContent =
+        'localStorage: ou_test_submitted = ' + stored;
+    }
+  </script>
+</body>
+</html>
