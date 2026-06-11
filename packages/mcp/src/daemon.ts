@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 
 const OPENUSER_HOME = process.env['OPENUSER_HOME'] ?? join(homedir(), '.openuser');
 const DAEMON_JSON = join(OPENUSER_HOME, 'daemon.json');
+const DEFAULT_PORT = 8737;
 const POLL_ATTEMPTS = 10;
 const POLL_INTERVAL_MS = 500;
 
@@ -15,10 +16,20 @@ interface DaemonInfo {
   startedAt: string;
 }
 
+/**
+ * Read the daemon's recorded port from daemon.json.
+ * Returns null on ANY failure — a missing file (expected on first run, ENOENT)
+ * and a corrupt/partial file are both treated as "no usable port", so the
+ * caller falls back to DEFAULT_PORT and re-verifies via a health check.
+ * The `typeof port === 'number'` guard prevents trusting a malformed record
+ * (e.g. an interrupted write) and accidentally targeting the wrong port.
+ */
 async function readDaemonJson(): Promise<DaemonInfo | null> {
   try {
     const raw = await readFile(DAEMON_JSON, 'utf8');
-    return JSON.parse(raw) as DaemonInfo;
+    const parsed = JSON.parse(raw) as Partial<DaemonInfo>;
+    if (typeof parsed.port !== 'number') return null;
+    return parsed as DaemonInfo;
   } catch {
     return null;
   }
@@ -71,20 +82,18 @@ async function pollHealth(baseUrl: string): Promise<boolean> {
 export async function resolveDaemonBaseUrl(): Promise<string> {
   // First try to read daemon.json for the actual port
   const info = await readDaemonJson();
-  const port = info?.port ?? 8737;
+  const port = info?.port ?? DEFAULT_PORT;
   const baseUrl = `http://127.0.0.1:${port}`;
 
   if (await checkHealth(baseUrl)) {
     return baseUrl;
   }
 
-  // Daemon not reachable — spawn it
-  try {
-    spawnDaemon();
-  } catch (err) {
-    // OPENUSER_CLI_ENTRY not set — throw the instructive error
-    throw err;
-  }
+  // Daemon not reachable — spawn it. Throws the instructive "OPENUSER_CLI_ENTRY
+  // not set" error if we can't, which propagates to the caller unchanged.
+  // (If two MCP processes race here they may both spawn; the daemon's own
+  // port-busy handling keeps that benign — the loser is an idle orphan.)
+  spawnDaemon();
 
   // Poll until daemon comes up
   const up = await pollHealth(baseUrl);

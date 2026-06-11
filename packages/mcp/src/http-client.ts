@@ -319,7 +319,8 @@ export function testerComplete(
 
 export async function fetchArtifactBytes(baseUrl: string, artifactPath: string): Promise<{ data: string; mimeType: string }> {
   const url = `${baseUrl}/artifacts/${artifactPath}`;
-  const res = await fetch(url);
+  // Bounded so a stalled artifact response can't hang the MCP tool indefinitely.
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new ApiError(res.status, `Artifact not found: ${artifactPath}`);
   const buffer = await res.arrayBuffer();
   const data = Buffer.from(buffer).toString('base64');
