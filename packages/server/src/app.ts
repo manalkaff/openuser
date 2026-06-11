@@ -14,6 +14,16 @@ import { personasRouter } from './routes/personas.js';
 import { testsRouter } from './routes/tests.js';
 import { runsRouter } from './routes/runs.js';
 import { WsHub } from './ws/hub.js';
+import type { ActiveSessions } from './routes/tester/auth.js';
+import { beginRouter } from './routes/tester/begin.js';
+import { snapshotRouter } from './routes/tester/snapshot.js';
+import { actionRouter } from './routes/tester/action.js';
+import { screenshotRouter } from './routes/tester/screenshot.js';
+import { findingRouter } from './routes/tester/finding.js';
+import { checkpointTesterRouter } from './routes/tester/checkpoint.js';
+import { completeRouter } from './routes/tester/complete.js';
+import { LogPipelineService } from './services/log-pipeline.service.js';
+import type { RunnerSession } from './runner/types.js';
 
 export interface ServerOptions {
   homeDir: string;
@@ -27,6 +37,9 @@ export interface ServerContext {
   homeDir: string;
   settings: SettingsService;
   wsHub: WsHub;
+  activeSessions: ActiveSessions;
+  watchdogReset?: (runId: string) => void;
+  watchdogCancel?: (runId: string) => void;
 }
 
 export interface ServerInstance {
@@ -82,6 +95,18 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   app.route('/', testsRouter(ctx));
   app.route('/', runsRouter(ctx));
 
+  // Tester routes
+  const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
+  const watchdogReset = ctx.watchdogReset ?? ((_id: string) => {});
+  const watchdogCancel = ctx.watchdogCancel ?? ((_id: string) => {});
+  app.route('/', beginRouter(ctx, ctx.activeSessions));
+  app.route('/', snapshotRouter(ctx, ctx.activeSessions));
+  app.route('/', actionRouter(ctx, ctx.activeSessions, logPipeline, watchdogReset));
+  app.route('/', screenshotRouter(ctx, ctx.activeSessions));
+  app.route('/', findingRouter(ctx, ctx.activeSessions, logPipeline, watchdogReset));
+  app.route('/', checkpointTesterRouter(ctx, ctx.activeSessions, watchdogReset));
+  app.route('/', completeRouter(ctx, ctx.activeSessions, watchdogCancel));
+
   // Static artifact serving — Fix #5: use static imports, not dynamic import('node:fs')
   app.get('/artifacts/*', async (c) => {
     const url = new URL(c.req.url);
@@ -121,7 +146,8 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   const settingsService = new SettingsService(db);
   const wsHub = new WsHub();
 
-  const ctx: ServerContext = { db, homeDir, settings: settingsService, wsHub };
+  const activeSessions: Map<string, RunnerSession> = new Map();
+  const ctx: ServerContext = { db, homeDir, settings: settingsService, wsHub, activeSessions };
 
   // Read version from package.json (bundled at build time)
   let version = '0.0.1';
