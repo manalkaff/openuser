@@ -26,6 +26,7 @@
     "drizzle-orm": "^0.44",
     "hono": "^4.7",
     "nanoid": "^5",
+    "playwright": "^1.55",
     "zod": "^3.24"
   },
   "devDependencies": {
