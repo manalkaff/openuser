@@ -20,6 +20,7 @@
   let editingPersona = $state<Persona | null>(null);
   let saving = $state(false);
   let saveError = $state<string | null>(null);
+  let archiveError = $state<string | null>(null);
 
   // Form fields
   let fname = $state('');
@@ -97,6 +98,10 @@
       saveError = 'Name, role, full name, and role label are required.';
       return;
     }
+    if ((fCredUsername && !fCredPassword) || (!fCredUsername && fCredPassword)) {
+      saveError = 'Both username and password are required when providing credentials.';
+      return;
+    }
     saveError = null;
     saving = true;
     try {
@@ -141,10 +146,13 @@
   }
 
   async function handleArchive(p: Persona) {
+    archiveError = null;
     try {
       const updated = await patchPersona(p.id, { archived: !p.archived });
       personas = personas.map(x => x.id === updated.id ? updated : x);
-    } catch { /* ignore */ }
+    } catch (e) {
+      archiveError = e instanceof Error ? e.message : 'Archive failed';
+    }
   }
 </script>
 
@@ -159,12 +167,16 @@
       onclick={openCreate}
       class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
     >
-      <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+      <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
       </svg>
       New persona
     </button>
   </div>
+
+  {#if archiveError}
+    <div class="mb-4 rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-400">{archiveError}</div>
+  {/if}
 
   {#if loading}
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -253,7 +265,7 @@
               class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-role">Role label *</label>
+            <label class="block text-xs text-zinc-400 mb-1" for="p-role">Role *</label>
             <input id="p-role" bind:value={frole} type="text" placeholder="e.g. reseller"
               class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
           </div>
@@ -293,7 +305,7 @@
           </div>
           <div>
             <label class="block text-xs text-zinc-400 mb-1" for="p-credpass">Password</label>
-            <input id="p-credpass" bind:value={fCredPassword} type="text" placeholder="Optional password"
+            <input id="p-credpass" bind:value={fCredPassword} type="password" placeholder="Optional password"
               class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
           </div>
         </div>

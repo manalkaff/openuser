@@ -2,6 +2,7 @@ import type {
   Project, Persona, Test, Run, Step, Finding, Checkpoint, LogEvent,
   RunStatus, Severity, FindingType, FindingStatus,
   PersonaIdentity, PersonaBehavior, PersonaKnowledge,
+  PatchPersonaBody,
 } from '@openuser/shared';
 
 // ── Types for request bodies ─────────────────────────────────────────────────
@@ -147,7 +148,7 @@ export function createPersona(projectId: string, body: CreatePersonaBody): Promi
 
 export function patchPersona(
   id: string,
-  body: Partial<CreatePersonaBody> & { archived?: boolean },
+  body: PatchPersonaBody,
 ): Promise<Persona> {
   return request<Persona>(`/api/personas/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
 }

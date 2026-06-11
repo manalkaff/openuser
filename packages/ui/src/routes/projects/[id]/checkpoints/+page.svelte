@@ -13,6 +13,7 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let deletingId = $state<string | null>(null);
+  let deleteError = $state<string | null>(null);
 
   onMount(async () => {
     try {
@@ -33,12 +34,13 @@
 
   async function handleDelete(cp: Checkpoint) {
     if (!confirm(`Delete checkpoint "${cp.name}"? This cannot be undone.`)) return;
+    deleteError = null;
     deletingId = cp.id;
     try {
       await deleteCheckpoint(cp.id);
       checkpoints = checkpoints.filter(c => c.id !== cp.id);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      deleteError = e instanceof Error ? e.message : 'Delete failed';
     } finally {
       deletingId = null;
     }
@@ -52,6 +54,10 @@
       Saved browser sessions and journey notes. Checkpoints let test runs resume from a known state (e.g. logged-in user with items in cart).
     </p>
   </div>
+
+  {#if deleteError}
+    <div class="mb-4 rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-400">{deleteError}</div>
+  {/if}
 
   {#if loading}
     <div class="space-y-2">

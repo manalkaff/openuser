@@ -45,8 +45,9 @@
         getPersonas(projectId),
         getCheckpoints(projectId),
       ]);
-      // pre-select default persona if available
-      if (personas.length > 0) selectedPersonaId = personas[0]!.id;
+      // pre-select first non-archived persona
+      const firstActive = personas.find((p) => !p.archived);
+      if (firstActive) selectedPersonaId = firstActive.id;
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to load project';
     } finally {
@@ -61,7 +62,8 @@
     promptVisible = false;
     prepareError = null;
     adhocGoal = '';
-    if (personas.length > 0) selectedPersonaId = personas[0]!.id;
+    const firstActive = personas.find((p) => !p.archived);
+    if (firstActive) selectedPersonaId = firstActive.id;
     selectedCheckpointId = '';
     selectedEnvironment = '';
     modalOpen = true;
@@ -111,7 +113,7 @@
     <div class="mb-6">
       <div class="flex items-center gap-2 text-sm text-zinc-500 mb-1">
         <a href="/" class="hover:text-zinc-300 transition-colors">Projects</a>
-        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+        <svg aria-hidden="true" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
         </svg>
         <span class="text-zinc-300">{project.name}</span>
@@ -127,7 +129,7 @@
             onclick={() => openRunModal(null, 'adhoc')}
             class="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:text-zinc-100 hover:border-zinc-600 transition-colors"
           >
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
             </svg>
             Ad-hoc run
