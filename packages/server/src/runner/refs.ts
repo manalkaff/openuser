@@ -23,8 +23,9 @@ export class RefMap {
    * Rebuild the map from a fresh AnnotatedRef list.
    * Discards all previous entries.
    *
-   * For elements with nth === 0, the raw role locator is stored directly.
-   * For elements with nth > 0, `.nth(nth)` is applied for disambiguation.
+   * `.nth(nth)` is ALWAYS applied (including nth=0) so the resulting locator is
+   * non-strict. Without it, a bare `getByRole` locator is strict and throws a
+   * "strict mode violation" when the role+name pair matches more than one element.
    *
    * Note: Playwright's `getByRole` accepts the ARIA role as a string. We cast
    * to `Parameters<Page['getByRole']>[0]` to satisfy strict typing.
@@ -33,7 +34,7 @@ export class RefMap {
     this.map.clear();
     for (const { ref, role, name, nth } of refs) {
       const base = page.getByRole(role as Parameters<Page['getByRole']>[0], { name });
-      const locator: Locator = nth > 0 ? base.nth(nth) : base;
+      const locator: Locator = base.nth(nth);
       this.map.set(ref, locator);
     }
   }

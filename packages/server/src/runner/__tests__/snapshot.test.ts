@@ -60,6 +60,15 @@ describe('annotateSnapshot', () => {
     expect(annotated).toBe(raw);
   });
 
+  it('unescapes JSON-style escape sequences in accessible names', () => {
+    // Playwright serialises `Say "Hello"` as `Say \"Hello\"` in the aria snapshot.
+    const raw = `- document:\n  - button "Say \\"Hello\\""`;
+    const { refs } = annotateSnapshot(raw);
+    expect(refs).toHaveLength(1);
+    // The stored name must be the true unescaped string so getByRole receives it.
+    expect(refs[0]!.name).toBe('Say "Hello"');
+  });
+
   it('handles duplicate role+name by tracking occurrence index', () => {
     const raw = `- document:
   - button "OK"

@@ -60,7 +60,7 @@ describe('RefMap', () => {
     expect(refMap.get('e99')).toBeNull();
   });
 
-  it('applies .nth() for duplicate role+name (nth > 0)', () => {
+  it('applies .nth() for duplicate role+name (nth=0 and nth=1)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const page = makeMockPage() as any;
     const refs = [
@@ -76,8 +76,9 @@ describe('RefMap', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const second = refMap.get('e2') as any;
 
-    // first occurrence: no nth applied → _nth undefined
-    expect(first._nth).toBeUndefined();
+    // .nth() is ALWAYS applied so even the first occurrence gets nth(0).
+    // This prevents strict-mode violations when two elements share role+name.
+    expect(first._nth).toBe(0);
 
     // second occurrence: nth(1) applied → _nth === 1
     expect(second._nth).toBe(1);
