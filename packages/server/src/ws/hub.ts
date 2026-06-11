@@ -50,7 +50,7 @@ export class WsHub {
     const event: WsEvent = { channel, type, payload };
     const json = JSON.stringify(event);
     for (const [ws, subs] of this.connections) {
-      if (subs.has(channel) || subs.has('global')) {
+      if (subs.has(channel)) {
         try {
           ws.send(json);
         } catch {
@@ -61,7 +61,19 @@ export class WsHub {
   }
 
   broadcastRun(runId: string, type: WsEventType, payload: unknown): void {
+    // Send to run-scoped channel subscribers
     this.broadcast(`run:${runId}`, type, payload);
-    this.broadcast('global', type, payload);
+    // Also send to global channel subscribers (with channel set to run:<id> so clients know the source)
+    const event: WsEvent = { channel: `run:${runId}`, type, payload };
+    const json = JSON.stringify(event);
+    for (const [ws, subs] of this.connections) {
+      if (subs.has('global')) {
+        try {
+          ws.send(json);
+        } catch {
+          // ignore closed sockets
+        }
+      }
+    }
   }
 }
