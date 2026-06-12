@@ -60,10 +60,38 @@ npx openuser
 This starts the daemon on port 8737, opens the dashboard in your browser, and (on first run)
 prompts you to install the Playwright Chromium browser.
 
-### 2. Add the MCP servers to your agent
+### 2. Set up your project (one command)
 
-> `npx openuser skills install --agent <agent>` (step 3) prints the exact snippet for your
-> agent. The configs below are what it emits.
+From your project directory:
+
+```bash
+openuser init
+```
+
+This interactively asks for a project name and your app's base URL, then lets you pick your
+coding agent (Claude Code, Codex, opencode, or Cursor). For the agent you choose it will:
+
+- register the project with the daemon and write `openuser.config.json`,
+- copy the `openuser-manager` + `openuser-tester` skills into the right place
+  (`.claude/skills/` for Claude Code, `.agents/skills/` otherwise), and
+- **write the MCP server config** into the agent's project-local config file
+  (`.mcp.json`, `.codex/config.json`, `.opencode/config.json`, or `.cursor/mcp.json`),
+  merging into any existing config without clobbering it.
+
+Fully non-interactive (handy for scripts/CI):
+
+```bash
+openuser init --name my-app --base-url http://localhost:3000 --agent claude
+# --agent: claude | codex | opencode | cursor | skip
+```
+
+> **Claude Code:** the MCP servers are written to project-scoped `.mcp.json`, so Claude Code
+> will ask you to approve them once on next launch.
+
+If you'd rather wire things up manually, the per-agent configs are below.
+
+<details>
+<summary>Manual MCP config (what <code>init</code> writes)</summary>
 
 **Claude Code** — easiest is the CLI:
 
@@ -118,18 +146,12 @@ Or add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global
 }
 ```
 
-### 3. Install the skills
+To install just the skills without touching MCP config, use
+`openuser skills install --agent <agent>` (copies skill files and prints the MCP snippet).
 
-```bash
-npx openuser skills install --agent claude
-# or: --agent codex | --agent opencode | --agent cursor
-```
+</details>
 
-This copies the `openuser-manager` and `openuser-tester` skill files into your project —
-`.claude/skills/` for Claude Code, `.agents/skills/` for every other agent — and prints the
-matching MCP config snippet (plus an `AGENTS.md` discovery snippet for non-Claude agents).
-
-### 4. Talk to your agent
+### 3. Talk to your agent
 
 With your dev server running:
 
