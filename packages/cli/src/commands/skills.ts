@@ -38,6 +38,11 @@ export function copySkills(args: CopySkillsArgs): void {
   for (const skillName of skillNames) {
     const src = join(skillsRoot, skillName);
     const dest = join(targetBase, skillName);
+    if (!existsSync(src)) {
+      throw new Error(
+        `Bundled skill "${skillName}" not found at ${src} — try reinstalling the openuser package.`,
+      );
+    }
     mkdirSync(dest, { recursive: true });
     copyDirRecursive(src, dest);
   }

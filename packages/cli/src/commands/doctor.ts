@@ -148,8 +148,11 @@ export function registerDoctor(program: Command): void {
       let anyFail = false;
       for (const r of results) {
         const icon = r.pass ? pc.green('✓') : pc.red('✗');
-        const label = r.pass ? pc.green(r.label) : pc.red(r.label);
-        console.log(`  ${icon}  ${label.padEnd(28)}  ${r.message}`);
+        // Pad the RAW label before colorizing — padEnd counts the invisible ANSI
+        // escape codes, so padding a color-wrapped string misaligns the column.
+        const paddedLabel = r.label.padEnd(28);
+        const label = r.pass ? pc.green(paddedLabel) : pc.red(paddedLabel);
+        console.log(`  ${icon}  ${label}  ${r.message}`);
         if (!r.pass && r.hint) {
           console.log(`     ${pc.dim('→  ' + r.hint)}`);
         }
