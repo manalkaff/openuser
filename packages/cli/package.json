@@ -1,35 +1,37 @@
 {
   "name": "openuser",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Self-hostable agent-as-a-user testing platform",
+  "license": "MIT",
   "type": "module",
-  "bin": {
-    "openuser": "./dist/index.js"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
+  "bin": { "openuser": "./dist/index.js" },
+  "files": ["dist", "skills"],
+  "main": "./dist/index.js",
+  "exports": { ".": "./dist/index.js" },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "test": "echo \"No tests yet\" && exit 0",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "better-sqlite3": "^11",
+    "playwright": "^1.55"
+  },
+  "devDependencies": {
     "@openuser/mcp": "workspace:*",
     "@openuser/server": "workspace:*",
     "@openuser/shared": "workspace:*",
-    "commander": "^13.0.0",
-    "nanoid": "^5.0.0",
-    "open": "^10.0.0",
-    "picocolors": "^1.0.0"
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^20",
+    "commander": "^13",
+    "open": "^10",
+    "picocolors": "^1",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3"
   },
-  "devDependencies": {
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
-  }
+  "publishConfig": { "access": "public" }
 }

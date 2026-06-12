@@ -26,6 +26,13 @@ importers:
 
   packages/cli:
     dependencies:
+      better-sqlite3:
+        specifier: ^11
+        version: 11.10.0
+      playwright:
+        specifier: ^1.55
+        version: 1.60.0
+    devDependencies:
       '@openuser/mcp':
         specifier: workspace:*
         version: link:../mcp
@@ -35,25 +42,30 @@ importers:
       '@openuser/shared':
         specifier: workspace:*
         version: link:../shared
+      '@types/better-sqlite3':
+        specifier: ^7
+        version: 7.6.13
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
       commander:
-        specifier: ^13.0.0
+        specifier: ^13
         version: 13.1.0
-      nanoid:
-        specifier: ^5.0.0
-        version: 5.1.11
       open:
-        specifier: ^10.0.0
+        specifier: ^10
         version: 10.2.0
       picocolors:
-        specifier: ^1.0.0
+        specifier: ^1
         version: 1.1.1
-    devDependencies:
+      tsup:
+        specifier: ^8
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
       typescript:
-        specifier: ^5.7.0
+        specifier: ^5.7
         version: 5.9.3
       vitest:
-        specifier: ^3.0.0
-        version: 3.2.6(@types/node@25.9.3)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.22.4)
+        specifier: ^3
+        version: 3.2.6(@types/node@20.19.43)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
   packages/mcp:
     dependencies:
@@ -3821,7 +3833,7 @@ snapshots:
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
-      '@types/node': 25.9.3
+      '@types/node': 20.19.43
 
   '@types/chai@5.2.3':
     dependencies:
@@ -3848,7 +3860,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.9.3
+      '@types/node': 20.19.43
 
   '@typescript-eslint/eslint-plugin@8.61.0(@typescript-eslint/parser@8.61.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)':
     dependencies:
