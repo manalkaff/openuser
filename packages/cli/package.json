@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11",
+    "commander": "^13",
     "playwright": "^1.55"
   },
   "devDependencies": {
@@ -26,7 +27,6 @@
     "@openuser/shared": "workspace:*",
     "@types/better-sqlite3": "^7",
     "@types/node": "^20",
-    "commander": "^13",
     "open": "^10",
     "picocolors": "^1",
     "tsup": "^8",

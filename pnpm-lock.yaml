@@ -29,6 +29,9 @@ importers:
       better-sqlite3:
         specifier: ^11
         version: 11.10.0
+      commander:
+        specifier: ^13
+        version: 13.1.0
       playwright:
         specifier: ^1.55
         version: 1.60.0
@@ -48,9 +51,6 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.43
-      commander:
-        specifier: ^13
-        version: 13.1.0
       open:
         specifier: ^10
         version: 10.2.0
