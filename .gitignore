@@ -31,3 +31,7 @@ Thumbs.db
 
 # pnpm
 .pnpm-store/
+
+# packaging artifacts (build outputs, not source)
+packages/cli/skills/
+*.tgz
