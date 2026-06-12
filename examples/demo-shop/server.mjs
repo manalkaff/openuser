@@ -34,10 +34,6 @@ function setCookie(res, sid) {
   res.setHeader('Set-Cookie', `sid=${sid}; Path=/; HttpOnly; SameSite=Lax`);
 }
 
-function clearCookie(res) {
-  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0');
-}
-
 // ── HTML helpers ─────────────────────────────────────────────────────────────
 
 function layout(title, body, extraHead = '') {
@@ -363,7 +359,8 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (method === 'GET') {
-      if (pathname === '/' || pathname === '/products') return handleHome(req, res);
+      if (pathname === '/') return handleHome(req, res);
+      if (pathname === '/products') return handleProducts(req, res);
       const productMatch = pathname.match(/^\/products\/(p\d+)$/);
       if (productMatch) return handleProductDetail(req, res, productMatch[1]);
       if (pathname === '/cart') return handleCartGet(req, res);
