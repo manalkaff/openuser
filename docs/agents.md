@@ -18,19 +18,22 @@ an instructive error.
 
 ## Claude Code
 
-### MCP config (`~/.claude/mcp.json` or project `.claude/mcp.json`)
+### MCP config
+
+Easiest via the CLI:
+
+```bash
+claude mcp add openuser-manager -- openuser mcp --role manager
+claude mcp add openuser-tester  -- openuser mcp --role tester
+```
+
+Or add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
 
 ```json
 {
   "mcpServers": {
-    "openuser-manager": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "manager"]
-    },
-    "openuser-tester": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "tester"]
-    }
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
   }
 }
 ```
@@ -41,6 +44,7 @@ an instructive error.
 npx openuser skills install --agent claude
 # copies skills/openuser-manager/SKILL.md → .claude/skills/openuser-manager/SKILL.md
 # copies skills/openuser-tester/SKILL.md  → .claude/skills/openuser-tester/SKILL.md
+# then prints the MCP config snippet above
 ```
 
 ### Dispatch recipe (Task tool)
@@ -63,23 +67,25 @@ file paths, component names, API routes, or any code context.
 
 ## Codex
 
-### MCP config (`~/.codex/config.yaml`)
+### MCP config (`codex.json` or `~/.codex/config.json`)
 
-```yaml
-mcpServers:
-  openuser-manager:
-    command: npx
-    args: [openuser, mcp, --role, manager]
-  openuser-tester:
-    command: npx
-    args: [openuser, mcp, --role, tester]
+```json
+{
+  "mcpServers": {
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
+  }
+}
 ```
 
 ### Skill install
 
 ```bash
 npx openuser skills install --agent codex
-# appends skill content to AGENTS.md in the project root
+# copies the SKILL.md files into .agents/skills/openuser-manager/ and
+# .agents/skills/openuser-tester/, then PRINTS an AGENTS.md discovery
+# snippet (and the MCP config above) for you to paste — it does not
+# write AGENTS.md for you.
 ```
 
 ### Dispatch recipe (paste-prompt)
@@ -95,18 +101,14 @@ Alternatively, use the dashboard copy-prompt button: Tests → Run → select pe
 
 ## opencode
 
-### MCP config (`~/.opencode/config.json`)
+### MCP config (`~/.config/opencode/config.json`)
 
 ```json
 {
   "mcp": {
-    "openuser-manager": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "manager"]
-    },
-    "openuser-tester": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "tester"]
+    "servers": {
+      "openuser-manager": { "type": "stdio", "command": "openuser", "args": ["mcp", "--role", "manager"] },
+      "openuser-tester":  { "type": "stdio", "command": "openuser", "args": ["mcp", "--role", "tester"] }
     }
   }
 }
@@ -116,7 +118,8 @@ Alternatively, use the dashboard copy-prompt button: Tests → Run → select pe
 
 ```bash
 npx openuser skills install --agent opencode
-# appends skill content to AGENTS.md in the project root
+# copies the SKILL.md files into .agents/skills/, then PRINTS an
+# AGENTS.md discovery snippet (and the MCP config above) to paste.
 ```
 
 ### Dispatch recipe (paste-prompt)
@@ -125,20 +128,23 @@ Same as Codex: open a new opencode session, configure only the tester MCP, paste
 
 ## Cursor
 
-### MCP config (Settings → MCP → Add server)
-
-Add two entries:
+### MCP config (`.cursor/mcp.json` or `~/.cursor/mcp.json`)
 
 ```json
-{ "name": "openuser-manager", "command": "npx", "args": ["openuser", "mcp", "--role", "manager"] }
-{ "name": "openuser-tester",  "command": "npx", "args": ["openuser", "mcp", "--role", "tester"] }
+{
+  "mcpServers": {
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
+  }
+}
 ```
 
 ### Skill install
 
 ```bash
 npx openuser skills install --agent cursor
-# writes skill files to .cursor/rules/ as .mdc files
+# copies the SKILL.md files into .agents/skills/, then PRINTS an
+# AGENTS.md discovery snippet (and the MCP config above) to paste.
 ```
 
 ### Dispatch recipe (agent mode paste-prompt)

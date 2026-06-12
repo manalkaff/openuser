@@ -62,53 +62,61 @@ prompts you to install the Playwright Chromium browser.
 
 ### 2. Add the MCP servers to your agent
 
-**Claude Code** — add to `.claude/mcp.json` or `~/.claude/mcp.json`:
+> `npx openuser skills install --agent <agent>` (step 3) prints the exact snippet for your
+> agent. The configs below are what it emits.
+
+**Claude Code** — easiest is the CLI:
+
+```bash
+claude mcp add openuser-manager -- openuser mcp --role manager
+claude mcp add openuser-tester  -- openuser mcp --role tester
+```
+
+Or add to `.claude/settings.json` (project) or `~/.claude/settings.json` (global):
 
 ```json
 {
   "mcpServers": {
-    "openuser-manager": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "manager"]
-    },
-    "openuser-tester": {
-      "command": "npx",
-      "args": ["openuser", "mcp", "--role", "tester"]
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
+  }
+}
+```
+
+**Codex** — add to `codex.json` or `~/.codex/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
+  }
+}
+```
+
+**opencode** — add to `~/.config/opencode/config.json`:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "openuser-manager": { "type": "stdio", "command": "openuser", "args": ["mcp", "--role", "manager"] },
+      "openuser-tester":  { "type": "stdio", "command": "openuser", "args": ["mcp", "--role", "tester"] }
     }
   }
 }
 ```
 
-**Codex** — add to `~/.codex/config.yaml`:
-
-```yaml
-mcpServers:
-  openuser-manager:
-    command: npx
-    args: [openuser, mcp, --role, manager]
-  openuser-tester:
-    command: npx
-    args: [openuser, mcp, --role, tester]
-```
-
-**opencode** — add to `~/.opencode/config.json`:
+**Cursor** — add to `.cursor/mcp.json` or `~/.cursor/mcp.json`:
 
 ```json
 {
-  "mcp": {
-    "openuser-manager": { "command": "npx", "args": ["openuser", "mcp", "--role", "manager"] },
-    "openuser-tester":  { "command": "npx", "args": ["openuser", "mcp", "--role", "tester"] }
+  "mcpServers": {
+    "openuser-manager": { "command": "openuser", "args": ["mcp", "--role", "manager"] },
+    "openuser-tester":  { "command": "openuser", "args": ["mcp", "--role", "tester"] }
   }
 }
 ```
-
-**Cursor** — open Settings → MCP → Add server → paste:
-
-```json
-{ "command": "npx", "args": ["openuser", "mcp", "--role", "manager"] }
-```
-
-Add a second entry for `--role tester`.
 
 ### 3. Install the skills
 
@@ -117,8 +125,9 @@ npx openuser skills install --agent claude
 # or: --agent codex | --agent opencode | --agent cursor
 ```
 
-This copies `openuser-manager` and `openuser-tester` skill files to your agent's skills
-directory and prints the matching MCP snippet.
+This copies the `openuser-manager` and `openuser-tester` skill files into your project —
+`.claude/skills/` for Claude Code, `.agents/skills/` for every other agent — and prints the
+matching MCP config snippet (plus an `AGENTS.md` discovery snippet for non-Claude agents).
 
 ### 4. Talk to your agent
 

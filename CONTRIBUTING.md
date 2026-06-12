@@ -55,7 +55,7 @@ pnpm --filter @openuser/shared test
 # Full-lifecycle e2e test (requires Chromium)
 pnpm --filter @openuser/server test e2e-demo-shop
 
-# Dashboard e2e (Playwright, requires Chromium)
+# Dashboard unit tests (vitest + jsdom)
 pnpm --filter @openuser/ui test
 
 # Type-check all packages
