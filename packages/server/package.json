@@ -1,0 +1,42 @@
+{
+  "name": "@openuser/server",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13",
+    "@hono/node-ws": "^1.0",
+    "@hono/zod-validator": "^0.8.0",
+    "@openuser/shared": "workspace:*",
+    "better-sqlite3": "^11",
+    "drizzle-orm": "^0.44",
+    "hono": "^4.7",
+    "nanoid": "^5",
+    "playwright": "^1.55",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^20",
+    "@types/ws": "^8",
+    "drizzle-kit": "^0.31",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3",
+    "ws": "^8"
+  }
+}

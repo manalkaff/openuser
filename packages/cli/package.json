@@ -1,0 +1,38 @@
+{
+  "name": "openuser",
+  "version": "0.1.0",
+  "description": "Self-hostable agent-as-a-user testing platform",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "openuser": "./dist/index.js" },
+  "files": ["dist", "skills"],
+  "main": "./dist/index.js",
+  "exports": { ".": "./dist/index.js" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11",
+    "commander": "^13",
+    "playwright": "^1.55",
+    "ws": "^8"
+  },
+  "devDependencies": {
+    "@openuser/mcp": "workspace:*",
+    "@openuser/server": "workspace:*",
+    "@openuser/shared": "workspace:*",
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^20",
+    "open": "^10",
+    "picocolors": "^1",
+    "tsup": "^8",
+    "typescript": "^5.7",
+    "vitest": "^3"
+  },
+  "publishConfig": { "access": "public" }
+}

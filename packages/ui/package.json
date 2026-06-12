@@ -1,0 +1,32 @@
+{
+  "name": "@openuser/ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.21.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@types/node": "^20.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.1.4",
+    "tailwindcss": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
+    "typescript": "^5.7.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.0",
+    "jsdom": "^26.0.0",
+    "@vitest/coverage-v8": "^3.2.0"
+  },
+  "dependencies": {
+    "@openuser/shared": "workspace:*"
+  }
+}

@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+.svelte-kit/
+build/
+*.tsbuildinfo
+
+# test & coverage
+coverage/
+.vitest/
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# runtime data
+~/.openuser/
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pnpm
+.pnpm-store/
+
+# packaging artifacts (build outputs, not source)
+packages/cli/skills/
+*.tgz

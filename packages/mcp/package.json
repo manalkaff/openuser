@@ -1,0 +1,41 @@
+{
+  "name": "@openuser/mcp",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "openuser-mcp": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "tsup && vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18",
+    "@openuser/shared": "workspace:*",
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@openuser/server": "workspace:*",
+    "@types/node": "^20",
+    "@hono/node-server": "^1.13",
+    "hono": "^4.7",
+    "typescript": "^5.7",
+    "tsup": "^8",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
