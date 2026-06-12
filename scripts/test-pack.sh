@@ -4,6 +4,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLI_DIR="$REPO_ROOT/packages/cli"
 TEST_PORT=8799
 TMP_DIR=""
 DAEMON_PID=""
@@ -17,6 +18,8 @@ cleanup() {
   if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
     rm -rf "$TMP_DIR"
   fi
+  # Clean up tarball from cli dir
+  rm -f "$CLI_DIR"/openuser-*.tgz
 }
 trap cleanup EXIT
 
@@ -27,14 +30,13 @@ pnpm build:release
 
 # ── 2. Pack ─────────────────────────────────────────────────────────────────
 echo "[test-pack] Packing openuser…"
-cd "$REPO_ROOT/packages/cli"
-TARBALL_NAME=$(pnpm pack --pack-destination "$REPO_ROOT/packages/cli" 2>/dev/null | tail -1)
-# pnpm pack prints the full path; get just the filename
-TARBALL_PATH="$TARBALL_NAME"
-if [[ ! -f "$TARBALL_PATH" ]]; then
-  # Try in current dir
-  TARBALL_PATH="$REPO_ROOT/packages/cli/$(ls "$REPO_ROOT/packages/cli"/openuser-*.tgz 2>/dev/null | head -1 | xargs basename)"
-fi
+cd "$CLI_DIR"
+# Remove any stale tarball first
+rm -f openuser-*.tgz
+# Run pnpm pack; it creates the tarball in the current directory
+pnpm pack 2>&1
+# Find the tarball (pnpm pack output is verbose; just glob for it)
+TARBALL_PATH="$CLI_DIR/$(ls openuser-*.tgz | head -1)"
 echo "[test-pack] Tarball: $TARBALL_PATH"
 if [[ ! -f "$TARBALL_PATH" ]]; then
   echo "[test-pack] ERROR: tarball not found after pnpm pack"
@@ -51,7 +53,7 @@ cd "$INSTALL_DIR"
 cat > package.json <<'JSON'
 {"name":"openuser-smoke","version":"0.0.0","private":true}
 JSON
-npm install --save "$TARBALL_PATH" --no-fund --no-audit 2>&1
+npm install --save "file:$TARBALL_PATH" --no-fund --no-audit 2>&1
 
 # Locate the openuser binary
 OPENUSER_BIN="$INSTALL_DIR/node_modules/.bin/openuser"
@@ -66,7 +68,7 @@ echo "[test-pack] Binary: $OPENUSER_BIN"
 echo "[test-pack] Running openuser doctor…"
 "$OPENUSER_BIN" doctor || true
 
-# ── 5. Start daemon in foreground in background ─────────────────────────────
+# ── 5. Start daemon in foreground, backgrounded via & ───────────────────────
 echo "[test-pack] Starting daemon on port $TEST_PORT…"
 OPENUSER_HOME="$TMP_DIR/.openuser" "$OPENUSER_BIN" start --no-open --port "$TEST_PORT" &
 DAEMON_PID=$!

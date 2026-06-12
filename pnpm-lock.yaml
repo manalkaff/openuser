@@ -35,6 +35,9 @@ importers:
       playwright:
         specifier: ^1.55
         version: 1.60.0
+      ws:
+        specifier: ^8
+        version: 8.21.0
     devDependencies:
       '@openuser/mcp':
         specifier: workspace:*

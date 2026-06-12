@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
+  platform: 'node',
   target: 'node20',
   outDir: 'dist',
   bundle: true,
@@ -17,8 +18,11 @@ export default defineConfig({
   // commander has a CJS main that does dynamic require('events'), which breaks
   // when esbuild tries to inline it into an ESM bundle. Keep it external so
   // Node's module resolver picks up commander's own ESM export (esm.mjs) at
-  // runtime. All other deps are bundled for portability.
-  external: ['better-sqlite3', 'playwright', 'commander'],
+  // runtime.
+  // ws is a CJS package that internally calls require('events'), require('http')
+  // etc. — these dynamic requires fail when ws is inlined into an ESM bundle.
+  // Keep ws external so Node resolves it as CJS at runtime (works correctly).
+  external: ['better-sqlite3', 'playwright', 'commander', 'ws'],
   noExternal: ['open', 'picocolors', '@openuser/server', '@openuser/mcp', '@openuser/shared'],
   esbuildOptions(options) {
     options.banner = { js: '#!/usr/bin/env node' };

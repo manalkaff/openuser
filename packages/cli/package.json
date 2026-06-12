@@ -19,7 +19,8 @@
   "dependencies": {
     "better-sqlite3": "^11",
     "commander": "^13",
-    "playwright": "^1.55"
+    "playwright": "^1.55",
+    "ws": "^8"
   },
   "devDependencies": {
     "@openuser/mcp": "workspace:*",
