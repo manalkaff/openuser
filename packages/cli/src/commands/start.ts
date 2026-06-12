@@ -97,9 +97,16 @@ export async function runStart(opts: StartOptions): Promise<void> {
     await open(url);
   }
 
-  // Graceful shutdown on Ctrl+C
+  // Graceful shutdown on Ctrl+C. Surface a close failure via a non-zero exit
+  // code rather than masking it with 0.
   const shutdown = (): void => {
-    void instance.close().finally(() => process.exit(0));
+    instance
+      .close()
+      .then(() => process.exit(0))
+      .catch((err: unknown) => {
+        console.error(pc.red('✗') + '  ' + (err instanceof Error ? err.message : String(err)));
+        process.exit(1);
+      });
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
