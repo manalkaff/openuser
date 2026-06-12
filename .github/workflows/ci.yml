@@ -4,36 +4,164 @@ on:
   push:
     branches: [main, dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main]
+
+env:
+  PNPM_VERSION: "9"
+  NODE_VERSION: "20"
 
 jobs:
-  ci:
-    name: Typecheck · Lint · Test
+  lint-typecheck:
+    name: Lint & typecheck
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck all packages
-        run: pnpm -r typecheck
-
       - name: Lint
         run: pnpm lint
 
-      - name: Test all packages
-        run: pnpm -r test
+      - name: Typecheck
+        run: pnpm typecheck
+
+  unit:
+    name: Unit & integration tests (excl. e2e)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The server's PlaywrightRunner integration tests launch a real browser,
+      # so Chromium is required even for the non-e2e suite.
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Build packages (server/mcp/cli need to be built before tests)
+        run: pnpm build
+
+      - name: Run shared unit tests
+        run: pnpm --filter @openuser/shared test
+        env:
+          CI: true
+
+      - name: Run dashboard (UI) unit tests
+        run: pnpm --filter @openuser/ui test
+        env:
+          CI: true
+
+      - name: Run server unit + integration tests (excluding the demo-shop e2e)
+        run: pnpm --filter @openuser/server test -- --exclude '**/e2e-*.test.ts'
+        env:
+          CI: true
+
+  integration-e2e:
+    name: Full-lifecycle e2e (demo-shop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      # The e2e test spawns the *bundled* CLI daemon (packages/cli/dist/index.js),
+      # which serves the SPA from dist/ui and runs migrations from dist/migrations.
+      # Those are produced by the copy-* scripts in build:release, NOT by `pnpm build`.
+      - name: Build release bundle (CLI + UI + migrations)
+        run: pnpm build:release
+
+      - name: Run full-lifecycle e2e test (demo-shop)
+        run: pnpm --filter @openuser/server test -- e2e-demo-shop
+        env:
+          CI: true
+          OPENUSER_HOME: /tmp/openuser-ci-${{ github.run_id }}
+
+      - name: Upload e2e artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openuser-e2e-artifacts-${{ github.run_id }}
+          path: /tmp/openuser-ci-${{ github.run_id }}/
+          retention-days: 3
+
+  ui-build:
+    name: UI production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build @openuser/ui (Vite production)
+        run: pnpm --filter @openuser/ui build
+
+      - name: Verify build output exists
+        run: test -d packages/ui/build && echo "UI build output OK"
+
+  publish-dry-run:
+    name: CLI publish dry-run
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build release bundle
+        run: pnpm build:release
+
+      - name: Dry-run npm publish for openuser CLI
+        run: pnpm --filter openuser publish --dry-run --access public --no-git-checks
