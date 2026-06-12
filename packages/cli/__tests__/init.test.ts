@@ -53,6 +53,7 @@ describe('runInit', () => {
     const { runInit } = await import('../src/commands/init.js');
     await runInit({ cwd: tmpDir, name: 'updated-app', baseUrl: 'http://localhost:5000' });
     const secondCall = mockFetch.mock.calls[1];
+    if (!secondCall) throw new Error('Expected a second fetch call');
     expect(secondCall[1]?.method).toBe('PATCH');
     expect(secondCall[0]).toContain('prj_existing');
     const cfg = JSON.parse(readFileSync(join(tmpDir, 'openuser.config.json'), 'utf8'));
