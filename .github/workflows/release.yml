@@ -17,6 +17,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history so `gh release create --generate-notes` can compute
+          # notes from the previous tag.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -41,6 +45,12 @@ jobs:
 
       - name: Pack smoke test
         run: pnpm test:pack
+
+      # test:pack creates and then deletes its own tarball in cleanup, so pack a
+      # fresh one here for both the npm publish and the GitHub release asset.
+      - name: Pack tarball for release
+        working-directory: packages/cli
+        run: pnpm pack
 
       - name: Publish to npm
         working-directory: packages/cli

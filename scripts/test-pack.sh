@@ -36,7 +36,9 @@ rm -f openuser-*.tgz
 # Run pnpm pack; it creates the tarball in the current directory
 pnpm pack 2>&1
 # Find the tarball (pnpm pack output is verbose; just glob for it)
-TARBALL_PATH="$CLI_DIR/$(ls openuser-*.tgz | head -1)"
+# `|| true` so a missing tarball falls through to the friendly check below
+# instead of aborting under `set -o pipefail` with no diagnostic.
+TARBALL_PATH="$CLI_DIR/$(ls openuser-*.tgz 2>/dev/null | head -1 || true)"
 echo "[test-pack] Tarball: $TARBALL_PATH"
 if [[ ! -f "$TARBALL_PATH" ]]; then
   echo "[test-pack] ERROR: tarball not found after pnpm pack"
