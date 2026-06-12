@@ -61,6 +61,11 @@ export async function ensureDaemonRunning(): Promise<number> {
     env: { ...process.env },
   });
   child.unref();
+  // A spawn failure (ENOENT for a bad entry path, EACCES, etc.) emits an
+  // asynchronous 'error' event. Without a listener that becomes an unhandled
+  // EventEmitter error and crashes this process. Swallow it: the poll loop
+  // below times out cleanly and surfaces an actionable message instead.
+  child.on('error', () => {});
 
   for (let i = 0; i < 10; i++) {
     await new Promise((r) => setTimeout(r, 500));
