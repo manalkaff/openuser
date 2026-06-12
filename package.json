@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build:release": "pnpm --filter @openuser/shared build && pnpm --filter @openuser/server build && pnpm --filter @openuser/mcp build && pnpm --filter @openuser/ui build && pnpm --filter openuser build && node scripts/copy-ui.mjs && node scripts/copy-skills.mjs && node scripts/copy-migrations.mjs",
-    "test:pack": "bash scripts/test-pack.sh"
+    "test:pack": "bash scripts/test-pack.sh",
+    "demo": "node examples/demo-shop/server.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",
