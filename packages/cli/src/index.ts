@@ -1,5 +1,6 @@
-#!/usr/bin/env node
-// NOTE: tsup's esbuild banner also injects this shebang into dist/index.js.
+// NOTE: tsup's esbuild banner injects the shebang into dist/index.js.
+// Do NOT add #!/usr/bin/env node here — esbuild treats it as a JS comment
+// but the banner already adds one, resulting in a duplicate that breaks Node.
 
 import { program } from 'commander';
 import { registerStart } from './commands/start.js';

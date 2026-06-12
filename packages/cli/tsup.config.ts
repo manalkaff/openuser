@@ -14,8 +14,12 @@ export default defineConfig({
   // Enabling `splitting` would emit separate chunks with different
   // import.meta.url values and break bundledSkillsDir()/bundledUiDir().
   splitting: false,
-  external: ['better-sqlite3', 'playwright'],
-  noExternal: ['commander', 'open', 'picocolors', '@openuser/server', '@openuser/mcp', '@openuser/shared'],
+  // commander has a CJS main that does dynamic require('events'), which breaks
+  // when esbuild tries to inline it into an ESM bundle. Keep it external so
+  // Node's module resolver picks up commander's own ESM export (esm.mjs) at
+  // runtime. All other deps are bundled for portability.
+  external: ['better-sqlite3', 'playwright', 'commander'],
+  noExternal: ['open', 'picocolors', '@openuser/server', '@openuser/mcp', '@openuser/shared'],
   esbuildOptions(options) {
     options.banner = { js: '#!/usr/bin/env node' };
   },
