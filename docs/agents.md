@@ -16,6 +16,30 @@ The binary auto-spawns the OpenUser daemon (`openuser start --detach --no-open`)
 is not reachable, then retries the health check 10 times with 500ms backoff before failing with
 an instructive error.
 
+## One-command setup: `openuser init`
+
+For most users, `openuser init` is the only setup command needed. It prompts for a project
+name + base URL, asks which agent to configure, then for that agent:
+
+- registers the project and writes `openuser.config.json`,
+- copies both skills to the agent-appropriate location, and
+- **writes** the MCP server config into the agent's project-local file, merging into any
+  existing config (it never clobbers unrelated keys or other servers).
+
+| Agent | MCP file written | Skills dir |
+|---|---|---|
+| claude | `.mcp.json` | `.claude/skills/` |
+| codex | `.codex/config.json` | `.agents/skills/` |
+| opencode | `.opencode/config.json` | `.agents/skills/` |
+| cursor | `.cursor/mcp.json` | `.agents/skills/` |
+
+Non-interactive form: `openuser init --name <n> --base-url <url> --agent <agent|skip>`.
+
+For codex/opencode the canonical MCP config is a *global* file (`~/.codex/config.json`,
+`~/.config/opencode/config.json`); `init` writes a project-local equivalent so setup stays
+scoped to the repo. The sections below document the global locations and exact shapes if you
+prefer to configure manually or globally.
+
 ## Claude Code
 
 ### MCP config

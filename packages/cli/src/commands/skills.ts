@@ -146,7 +146,7 @@ function mcpSnippet(agent: Agent): string {
   }
 }
 
-function agentsMdSnippet(agent: Agent): string | null {
+export function agentsMdSnippet(agent: Agent): string | null {
   if (agent === 'claude') return null; // claude uses .claude/skills, not AGENTS.md
   return [
     '',
