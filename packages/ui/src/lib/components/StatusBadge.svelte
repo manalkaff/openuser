@@ -4,12 +4,12 @@
   const { status }: { status: RunStatus } = $props();
 
   const styles: Record<RunStatus, string> = {
-    pending:  'bg-zinc-700 text-zinc-300',
-    running:  'bg-blue-900 text-blue-300 animate-pulse',
-    passed:   'bg-green-900 text-green-300',
-    blocked:  'bg-orange-900 text-orange-300',
-    failed:   'bg-red-900 text-red-300',
-    aborted:  'bg-zinc-700 text-zinc-400',
+    pending:  'bg-muted text-muted-foreground',
+    running:  'bg-info/15 text-info animate-pulse',
+    passed:   'bg-success/15 text-success',
+    blocked:  'bg-warning/15 text-warning',
+    failed:   'bg-destructive/15 text-destructive',
+    aborted:  'bg-muted text-muted-foreground',
   };
 
   const labels: Record<RunStatus, string> = {

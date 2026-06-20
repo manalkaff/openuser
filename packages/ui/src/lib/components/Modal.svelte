@@ -45,14 +45,13 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <!-- Backdrop -->
   <div
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
     aria-labelledby="modal-title"
   >
-    <!-- Backdrop overlay -->
+    <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm"
       onclick={onclose}
@@ -60,14 +59,14 @@
     ></div>
 
     <!-- Panel -->
-    <div bind:this={panelEl} tabindex="-1" class="relative z-10 w-full {sizeClasses[size]} rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl focus:outline-none">
+    <div bind:this={panelEl} tabindex="-1" class="relative z-10 w-full {sizeClasses[size]} rounded-xl bg-card ring-1 ring-foreground/10 shadow-2xl focus:outline-none">
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <h2 id="modal-title" class="text-lg font-semibold text-zinc-100">{title}</h2>
+      <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+        <h2 id="modal-title" class="text-lg font-semibold text-foreground">{title}</h2>
         <button
           type="button"
           onclick={onclose}
-          class="rounded p-1 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+          class="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           aria-label="Close"
         >
           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

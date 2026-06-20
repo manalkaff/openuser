@@ -15,25 +15,21 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  // Modal
   let formOpen = $state(false);
   let editingPersona = $state<Persona | null>(null);
   let saving = $state(false);
   let saveError = $state<string | null>(null);
   let archiveError = $state<string | null>(null);
 
-  // Form fields
   let fname = $state('');
   let frole = $state('');
   let fnotes = $state('');
-  // identity
   let fFullName = $state('');
   let fRoleLabel = $state('');
   let fLocale = $state('en');
   let fCredUsername = $state('');
   let fCredPassword = $state('');
   let fSignupInstructions = $state('');
-  // behavior
   let fTechSavviness = $state<'novice' | 'average' | 'expert'>('average');
   let fPatience = $state<'low' | 'medium' | 'high'>('medium');
   let fReadingStyle = $state<'skims' | 'reads'>('reads');
@@ -41,7 +37,6 @@
   let fViewportWidth = $state(1280);
   let fViewportHeight = $state(720);
   let fHabits = $state('');
-  // knowledge
   let fProductKnowledge = $state('');
   let fExpectations = $state('');
   let fVocabulary = $state('');
@@ -154,18 +149,21 @@
       archiveError = e instanceof Error ? e.message : 'Archive failed';
     }
   }
+
+  const inputClass = "w-full rounded border border-border bg-muted px-3 py-1.5 text-sm text-foreground focus:border-ring focus:outline-none";
+  const labelClass = "block text-xs text-muted-foreground mb-1";
 </script>
 
 <div class="p-8">
   <div class="mb-6 flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-zinc-100">Personas</h1>
-      <p class="mt-1 text-sm text-zinc-400">Define user types to embody during test runs.</p>
+      <h1 class="text-2xl font-bold text-foreground">Personas</h1>
+      <p class="mt-1 text-sm text-muted-foreground">Define user types to embody during test runs.</p>
     </div>
     <button
       type="button"
       onclick={openCreate}
-      class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+      class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
     >
       <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
@@ -175,17 +173,17 @@
   </div>
 
   {#if archiveError}
-    <div class="mb-4 rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-400">{archiveError}</div>
+    <div class="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{archiveError}</div>
   {/if}
 
   {#if loading}
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       {#each [1, 2] as i (i)}
-        <div class="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900 h-56"></div>
+        <div class="animate-pulse rounded-xl ring-1 ring-foreground/10 bg-card h-56"></div>
       {/each}
     </div>
   {:else if error}
-    <div class="rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-400">{error}</div>
+    <div class="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
   {:else if personas.length === 0}
     <EmptyState
       icon="👤"
@@ -196,7 +194,7 @@
         <button
           type="button"
           onclick={openCreate}
-          class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+          class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors"
         >
           Create first persona
         </button>
@@ -207,32 +205,30 @@
       {#each personas as persona (persona.id)}
         <div class="relative">
           <PersonaCard {persona} />
-          <!-- Actions overlay -->
           <div class="absolute top-4 right-4 flex gap-2">
             <button
               type="button"
               onclick={() => openEdit(persona)}
-              class="rounded px-2 py-1 text-xs text-zinc-400 bg-zinc-800 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+              class="rounded px-2 py-1 text-xs text-muted-foreground bg-muted hover:text-foreground hover:bg-accent transition-colors"
             >
               Edit
             </button>
             <button
               type="button"
               onclick={() => handleArchive(persona)}
-              class="rounded px-2 py-1 text-xs text-zinc-400 bg-zinc-800 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+              class="rounded px-2 py-1 text-xs text-muted-foreground bg-muted hover:text-foreground hover:bg-accent transition-colors"
             >
               {persona.archived ? 'Unarchive' : 'Archive'}
             </button>
           </div>
-          <!-- Linked checkpoints -->
           {#if linkedCheckpoints(persona.id).length > 0}
-            <div class="mt-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-2">
-              <p class="text-xs text-zinc-500 mb-1.5">Linked checkpoints</p>
+            <div class="mt-2 rounded-lg border border-border bg-card/50 px-4 py-2">
+              <p class="text-xs text-muted-foreground mb-1.5">Linked checkpoints</p>
               <div class="flex flex-wrap gap-2">
                 {#each linkedCheckpoints(persona.id) as cp (cp.id)}
                   <a
                     href="/projects/{projectId}/checkpoints"
-                    class="text-xs bg-zinc-800 text-zinc-400 hover:text-zinc-200 px-2 py-0.5 rounded transition-colors"
+                    class="text-xs bg-muted text-muted-foreground hover:text-foreground px-2 py-0.5 rounded transition-colors"
                   >
                     {cp.name}
                   </a>
@@ -257,152 +253,138 @@
     <div class="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
       <!-- Basic -->
       <section>
-        <h3 class="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">Basic</h3>
+        <h3 class="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">Basic</h3>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-name">Name *</label>
-            <input id="p-name" bind:value={fname} type="text" placeholder="e.g. Ali the Reseller"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-name">Name *</label>
+            <input id="p-name" bind:value={fname} type="text" placeholder="e.g. Ali the Reseller" class={inputClass} />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-role">Role *</label>
-            <input id="p-role" bind:value={frole} type="text" placeholder="e.g. reseller"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-role">Role *</label>
+            <input id="p-role" bind:value={frole} type="text" placeholder="e.g. reseller" class={inputClass} />
           </div>
         </div>
         <div class="mt-3">
-          <label class="block text-xs text-zinc-400 mb-1" for="p-notes">Notes</label>
+          <label class={labelClass} for="p-notes">Notes</label>
           <textarea id="p-notes" bind:value={fnotes} rows="2" placeholder="Internal notes about this persona"
-            class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+            class="{inputClass} resize-none"></textarea>
         </div>
       </section>
 
       <!-- Identity -->
       <section>
-        <h3 class="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">Identity</h3>
+        <h3 class="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">Identity</h3>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-fullname">Full name *</label>
-            <input id="p-fullname" bind:value={fFullName} type="text" placeholder="e.g. Ahmad Ali"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-fullname">Full name *</label>
+            <input id="p-fullname" bind:value={fFullName} type="text" placeholder="e.g. Ahmad Ali" class={inputClass} />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-rolelabel">Role label *</label>
-            <input id="p-rolelabel" bind:value={fRoleLabel} type="text" placeholder="e.g. Reseller"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-rolelabel">Role label *</label>
+            <input id="p-rolelabel" bind:value={fRoleLabel} type="text" placeholder="e.g. Reseller" class={inputClass} />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-locale">Locale</label>
-            <input id="p-locale" bind:value={fLocale} type="text" placeholder="en"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-locale">Locale</label>
+            <input id="p-locale" bind:value={fLocale} type="text" placeholder="en" class={inputClass} />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mt-3">
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-creduser">Username (credentials)</label>
-            <input id="p-creduser" bind:value={fCredUsername} type="text" placeholder="Optional login username"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-creduser">Username (credentials)</label>
+            <input id="p-creduser" bind:value={fCredUsername} type="text" placeholder="Optional login username" class={inputClass} />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-credpass">Password</label>
-            <input id="p-credpass" bind:value={fCredPassword} type="password" placeholder="Optional password"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-credpass">Password</label>
+            <input id="p-credpass" bind:value={fCredPassword} type="password" placeholder="Optional password" class={inputClass} />
           </div>
         </div>
         <div class="mt-3">
-          <label class="block text-xs text-zinc-400 mb-1" for="p-signup">Signup instructions</label>
+          <label class={labelClass} for="p-signup">Signup instructions</label>
           <textarea id="p-signup" bind:value={fSignupInstructions} rows="2" placeholder="Instructions if this persona needs to create a fresh account"
-            class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+            class="{inputClass} resize-none"></textarea>
         </div>
       </section>
 
       <!-- Behavior -->
       <section>
-        <h3 class="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">Behavior</h3>
+        <h3 class="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">Behavior</h3>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-tech">Tech savviness</label>
-            <select id="p-tech" bind:value={fTechSavviness}
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+            <label class={labelClass} for="p-tech">Tech savviness</label>
+            <select id="p-tech" bind:value={fTechSavviness} class={inputClass}>
               <option value="novice">Novice</option>
               <option value="average">Average</option>
               <option value="expert">Expert</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-patience">Patience</label>
-            <select id="p-patience" bind:value={fPatience}
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+            <label class={labelClass} for="p-patience">Patience</label>
+            <select id="p-patience" bind:value={fPatience} class={inputClass}>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-reading">Reading style</label>
-            <select id="p-reading" bind:value={fReadingStyle}
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+            <label class={labelClass} for="p-reading">Reading style</label>
+            <select id="p-reading" bind:value={fReadingStyle} class={inputClass}>
               <option value="skims">Skims</option>
               <option value="reads">Reads</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-device">Device</label>
-            <select id="p-device" bind:value={fDevice}
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none">
+            <label class={labelClass} for="p-device">Device</label>
+            <select id="p-device" bind:value={fDevice} class={inputClass}>
               <option value="desktop">Desktop</option>
               <option value="mobile">Mobile</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-vw">Viewport width</label>
-            <input id="p-vw" bind:value={fViewportWidth} type="number" min="320" max="3840"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-vw">Viewport width</label>
+            <input id="p-vw" bind:value={fViewportWidth} type="number" min="320" max="3840" class={inputClass} />
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-vh">Viewport height</label>
-            <input id="p-vh" bind:value={fViewportHeight} type="number" min="320" max="2160"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-vh">Viewport height</label>
+            <input id="p-vh" bind:value={fViewportHeight} type="number" min="320" max="2160" class={inputClass} />
           </div>
         </div>
         <div class="mt-3">
-          <label class="block text-xs text-zinc-400 mb-1" for="p-habits">Habits & goals</label>
+          <label class={labelClass} for="p-habits">Habits & goals</label>
           <textarea id="p-habits" bind:value={fHabits} rows="2" placeholder="Describe this persona's habits and typical goals"
-            class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+            class="{inputClass} resize-none"></textarea>
         </div>
       </section>
 
       <!-- Knowledge -->
       <section>
-        <h3 class="text-sm font-semibold text-zinc-300 mb-3 uppercase tracking-wide">Knowledge</h3>
+        <h3 class="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">Knowledge</h3>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-pk">Product knowledge</label>
+            <label class={labelClass} for="p-pk">Product knowledge</label>
             <textarea id="p-pk" bind:value={fProductKnowledge} rows="2" placeholder="What does this persona already know about your product?"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+              class="{inputClass} resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-exp">Expectations</label>
+            <label class={labelClass} for="p-exp">Expectations</label>
             <textarea id="p-exp" bind:value={fExpectations} rows="2" placeholder="What does this persona expect to happen?"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none resize-none"></textarea>
+              class="{inputClass} resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-xs text-zinc-400 mb-1" for="p-vocab">Vocabulary</label>
-            <input id="p-vocab" bind:value={fVocabulary} type="text" placeholder="Domain terms this persona uses (e.g. 'cart', 'checkout', 'order')"
-              class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none" />
+            <label class={labelClass} for="p-vocab">Vocabulary</label>
+            <input id="p-vocab" bind:value={fVocabulary} type="text" placeholder="Domain terms this persona uses (e.g. 'cart', 'checkout', 'order')" class={inputClass} />
           </div>
         </div>
       </section>
 
       {#if saveError}
-        <p class="text-sm text-red-400">{saveError}</p>
+        <p class="text-sm text-destructive">{saveError}</p>
       {/if}
 
-      <div class="flex justify-end gap-3 pt-2 sticky bottom-0 bg-zinc-900 pb-1">
+      <div class="flex justify-end gap-3 pt-2 sticky bottom-0 bg-card pb-1">
         <button
           type="button"
           onclick={() => { formOpen = false; }}
-          class="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+          class="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           Cancel
         </button>
@@ -410,7 +392,7 @@
           type="button"
           onclick={handleSave}
           disabled={saving}
-          class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+          class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/80 disabled:opacity-50 transition-colors"
         >
           {saving ? 'Saving…' : editingPersona ? 'Save changes' : 'Create persona'}
         </button>

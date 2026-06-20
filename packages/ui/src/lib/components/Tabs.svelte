@@ -32,7 +32,7 @@
 
 <div>
   <!-- Tab bar -->
-  <div class="flex gap-1 border-b border-zinc-800 mb-4" role="tablist" tabindex="0" onkeydown={handleTablistKeydown}>
+  <div class="flex gap-1 border-b border-border mb-4" role="tablist" tabindex="0" onkeydown={handleTablistKeydown}>
     {#each tabs as tab (tab.id)}
       <button
         type="button"
@@ -42,14 +42,14 @@
         aria-controls="panel-{tab.id}"
         onclick={() => onchange(tab.id)}
         class="relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors
-               focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-t
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t
                {active === tab.id
-                 ? 'text-indigo-400 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-indigo-500'
-                 : 'text-zinc-400 hover:text-zinc-200'}"
+                 ? 'text-brand after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-brand'
+                 : 'text-muted-foreground hover:text-foreground'}"
       >
         {tab.label}
         {#if tab.count !== undefined}
-          <span class="rounded-full bg-zinc-800 px-1.5 py-0.5 text-xs {active === tab.id ? 'text-indigo-400' : 'text-zinc-500'}">
+          <span class="rounded-full bg-muted px-1.5 py-0.5 text-xs {active === tab.id ? 'text-brand' : 'text-muted-foreground'}">
             {tab.count}
           </span>
         {/if}

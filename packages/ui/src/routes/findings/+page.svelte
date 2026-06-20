@@ -12,16 +12,13 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  // Filters
   let filterProject = $state('');
   let filterSeverity = $state<Severity | ''>('');
   let filterType = $state<FindingType | ''>('');
   let filterStatus = $state<FindingStatus | ''>('open');
 
-  // Expanded rows (show evidence)
   let expandedIds = $state<Set<string>>(new Set());
 
-  // Inline status update
   let updatingId = $state<string | null>(null);
   let statusError = $state<string | null>(null);
 
@@ -86,18 +83,18 @@
   ];
 
   const statusBadgeClass: Record<FindingStatus, string> = {
-    open: 'text-orange-400',
-    acknowledged: 'text-blue-400',
-    resolved: 'text-green-400',
-    dismissed: 'text-zinc-500',
+    open: 'text-warning',
+    acknowledged: 'text-info',
+    resolved: 'text-success',
+    dismissed: 'text-muted-foreground',
   };
 </script>
 
 <div class="p-8">
   <!-- Header -->
   <div class="mb-6">
-    <h1 class="text-2xl font-bold text-zinc-100">Findings</h1>
-    <p class="mt-1 text-sm text-zinc-400">Cross-project issue inbox — triage, acknowledge, and resolve findings from all runs.</p>
+    <h1 class="text-2xl font-bold text-foreground">Findings</h1>
+    <p class="mt-1 text-sm text-muted-foreground">Cross-project issue inbox — triage, acknowledge, and resolve findings from all runs.</p>
   </div>
 
   <!-- Filters -->
@@ -105,8 +102,8 @@
     <select
       bind:value={filterProject}
       onchange={applyFilters}
-      class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300
-             focus:border-indigo-500 focus:outline-none"
+      class="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground
+             focus:border-ring focus:outline-none"
     >
       <option value="">All projects</option>
       {#each projects as p (p.id)}
@@ -117,8 +114,8 @@
     <select
       bind:value={filterSeverity}
       onchange={applyFilters}
-      class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300
-             focus:border-indigo-500 focus:outline-none"
+      class="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground
+             focus:border-ring focus:outline-none"
     >
       <option value="">All severities</option>
       <option value="critical">Critical</option>
@@ -130,8 +127,8 @@
     <select
       bind:value={filterType}
       onchange={applyFilters}
-      class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300
-             focus:border-indigo-500 focus:outline-none"
+      class="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground
+             focus:border-ring focus:outline-none"
     >
       <option value="">All types</option>
       <option value="functional">Functional</option>
@@ -143,8 +140,8 @@
     <select
       bind:value={filterStatus}
       onchange={applyFilters}
-      class="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-300
-             focus:border-indigo-500 focus:outline-none"
+      class="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground
+             focus:border-ring focus:outline-none"
     >
       <option value="">All statuses</option>
       <option value="open">Open</option>
@@ -153,23 +150,23 @@
       <option value="dismissed">Dismissed</option>
     </select>
 
-    <span class="self-center text-xs text-zinc-500">
+    <span class="self-center text-xs text-muted-foreground">
       {findings.length} result{findings.length !== 1 ? 's' : ''}
     </span>
   </div>
 
   {#if statusError}
-    <div class="mb-4 rounded-lg border border-red-900 bg-red-950/30 p-3 text-sm text-red-400">{statusError}</div>
+    <div class="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{statusError}</div>
   {/if}
 
   {#if loading}
     <div class="space-y-2">
       {#each [1, 2, 3, 4] as i (i)}
-        <div class="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900 h-20"></div>
+        <div class="animate-pulse rounded-lg border border-border bg-card h-20"></div>
       {/each}
     </div>
   {:else if error}
-    <div class="rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-400">{error}</div>
+    <div class="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
   {:else if findings.length === 0}
     <EmptyState
       icon="✅"
@@ -177,12 +174,12 @@
       description="No findings match your current filters. Change the filters or run tests to surface issues."
     />
   {:else}
-    <div class="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div class="rounded-xl ring-1 ring-foreground/10 bg-card overflow-hidden">
       {#each findings as finding (finding.id)}
-        <div class="border-b border-zinc-800 last:border-0">
+        <div class="border-b border-border last:border-0">
           <!-- Main row -->
           <div
-            class="flex items-start gap-3 px-4 py-3 hover:bg-zinc-800/40 transition-colors cursor-pointer"
+            class="flex items-start gap-3 px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
             onclick={() => toggleExpand(finding.id)}
             role="button"
             tabindex="0"
@@ -198,13 +195,13 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-zinc-200">{finding.title}</p>
-                  <p class="text-xs text-zinc-500 mt-0.5">
+                  <p class="text-sm font-medium text-foreground">{finding.title}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5">
                     <span class="capitalize">{finding.type.replace('_', ' ')}</span>
                     &middot;
                     <a
                       href="/projects/{finding.projectId}"
-                      class="hover:text-zinc-300 transition-colors"
+                      class="hover:text-foreground transition-colors"
                       onclick={(e) => e.stopPropagation()}
                     >
                       {projectName(finding.projectId)}
@@ -212,7 +209,7 @@
                     &middot;
                     <a
                       href="/runs/{finding.runId}"
-                      class="text-indigo-500 hover:text-indigo-400 transition-colors"
+                      class="text-brand hover:text-brand/80 transition-colors"
                       onclick={(e) => e.stopPropagation()}
                     >
                       View run →
@@ -222,7 +219,7 @@
 
                 <!-- Status selector -->
                 <div class="flex items-center gap-2 shrink-0">
-                  <RelativeTime timestamp={finding.createdAt} class="text-xs text-zinc-600 hidden sm:block" />
+                  <RelativeTime timestamp={finding.createdAt} class="text-xs text-muted-foreground/60 hidden sm:block" />
                   <select
                     value={finding.status}
                     disabled={updatingId === finding.id}
@@ -232,9 +229,9 @@
                       const el = e.currentTarget as HTMLSelectElement;
                       handleStatusChange(finding, el.value as FindingStatus);
                     }}
-                    class="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs
+                    class="rounded border border-border bg-muted px-2 py-1 text-xs
                            {statusBadgeClass[finding.status]}
-                           focus:border-indigo-500 focus:outline-none disabled:opacity-50"
+                           focus:border-ring focus:outline-none disabled:opacity-50"
                   >
                     {#each statusOptions as opt (opt.value)}
                       <option value={opt.value}>{opt.label}</option>
@@ -245,7 +242,7 @@
             </div>
 
             <!-- Expand chevron -->
-            <div class="shrink-0 text-zinc-600">
+            <div class="shrink-0 text-muted-foreground/40">
               <svg class="h-4 w-4 transition-transform {expandedIds.has(finding.id) ? 'rotate-180' : ''}"
                 viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -255,22 +252,20 @@
 
           <!-- Expanded evidence -->
           {#if expandedIds.has(finding.id)}
-            <div class="px-4 pb-4 bg-zinc-950/40">
-              <!-- Description (user-voice narrative) -->
-              <blockquote class="border-l-2 border-indigo-600 pl-3 mb-3">
-                <p class="text-sm text-zinc-300 italic">"{finding.description}"</p>
+            <div class="px-4 pb-4 bg-background/40">
+              <blockquote class="border-l-2 border-brand pl-3 mb-3">
+                <p class="text-sm text-foreground/80 italic">"{finding.description}"</p>
               </blockquote>
 
-              <!-- Evidence -->
               <div class="space-y-2">
                 {#if finding.evidence.screenshotPath}
                   <div>
-                    <p class="text-xs font-medium text-zinc-500 mb-1">Screenshot</p>
+                    <p class="text-xs font-medium text-muted-foreground mb-1">Screenshot</p>
                     <a href="/runs/{finding.runId}" class="inline-block">
                       <img
                         src={`/artifacts/${finding.runId}/${finding.evidence.screenshotPath}`}
                         alt="Evidence screenshot"
-                        class="rounded border border-zinc-700 max-h-32 object-cover"
+                        class="rounded border border-border max-h-32 object-cover"
                         loading="lazy"
                       />
                     </a>
@@ -279,20 +274,20 @@
 
                 {#if finding.evidence.consoleExcerpt && finding.evidence.consoleExcerpt.length > 0}
                   <div>
-                    <p class="text-xs font-medium text-zinc-500 mb-1">Console excerpt</p>
-                    <pre class="rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-red-400 font-mono overflow-x-auto max-h-20">{JSON.stringify(finding.evidence.consoleExcerpt, null, 2)}</pre>
+                    <p class="text-xs font-medium text-muted-foreground mb-1">Console excerpt</p>
+                    <pre class="rounded border border-border bg-background px-3 py-2 text-xs text-destructive font-mono overflow-x-auto max-h-20">{JSON.stringify(finding.evidence.consoleExcerpt, null, 2)}</pre>
                   </div>
                 {/if}
 
                 {#if finding.evidence.networkExcerpt && finding.evidence.networkExcerpt.length > 0}
                   <div>
-                    <p class="text-xs font-medium text-zinc-500 mb-1">Network excerpt</p>
-                    <div class="rounded border border-zinc-800 bg-zinc-950 px-3 py-2 space-y-1">
+                    <p class="text-xs font-medium text-muted-foreground mb-1">Network excerpt</p>
+                    <div class="rounded border border-border bg-background px-3 py-2 space-y-1">
                       {#each finding.evidence.networkExcerpt as req, i (i)}
                         <div class="text-xs font-mono">
-                          <span class="text-red-400">{req.status}</span>
-                          <span class="text-zinc-500 mx-1">{req.method}</span>
-                          <span class="text-zinc-300">{req.url}</span>
+                          <span class="text-destructive">{req.status}</span>
+                          <span class="text-muted-foreground mx-1">{req.method}</span>
+                          <span class="text-foreground">{req.url}</span>
                         </div>
                       {/each}
                     </div>

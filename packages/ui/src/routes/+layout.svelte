@@ -17,7 +17,6 @@
     return () => wsDisconnect();
   });
 
-  // Determine active project id from URL if inside a project route
   const projectId = $derived(
     $page.params.id && $page.url.pathname.startsWith('/projects/')
       ? $page.params.id
@@ -48,13 +47,13 @@
   }
 </script>
 
-<div class="flex h-screen overflow-hidden bg-zinc-950">
+<div class="flex h-screen overflow-hidden bg-background">
   <!-- Sidebar -->
-  <aside class="w-56 shrink-0 flex flex-col border-r border-zinc-800 bg-zinc-950">
+  <aside class="w-56 shrink-0 flex flex-col border-r border-border bg-sidebar">
     <!-- Logo -->
-    <div class="flex items-center gap-2.5 px-4 py-4 border-b border-zinc-800">
+    <div class="flex items-center gap-2.5 px-4 py-4 border-b border-border">
       <img src="/favicon.svg" alt="OpenUser" class="h-7 w-7" />
-      <span class="font-bold text-zinc-100 tracking-tight">OpenUser</span>
+      <span class="font-bold text-foreground tracking-tight">OpenUser</span>
     </div>
 
     <!-- Main nav -->
@@ -64,8 +63,8 @@
           href={item.href}
           class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors
                  {isActive(item.href)
-                   ? 'bg-indigo-600/20 text-indigo-300'
-                   : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}"
+                   ? 'bg-accent text-brand'
+                   : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
         >
           {#if item.icon === 'home'}
             <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -86,15 +85,15 @@
 
       <!-- Project subnav -->
       {#if isInsideProject && projectNavItems.length > 0}
-        <div class="mt-4 pt-4 border-t border-zinc-800">
-          <p class="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Project</p>
+        <div class="mt-4 pt-4 border-t border-border">
+          <p class="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Project</p>
           {#each projectNavItems as item (item.href)}
             <a
               href={item.href}
               class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors
                      {isActive(item.href)
-                       ? 'bg-indigo-600/20 text-indigo-300'
-                       : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}"
+                       ? 'bg-accent text-brand'
+                       : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
             >
               {#if item.icon === 'tests'}
                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -117,9 +116,9 @@
     </nav>
 
     <!-- Footer: connection indicator -->
-    <div class="px-4 py-3 border-t border-zinc-800">
-      <div class="flex items-center gap-2 text-xs text-zinc-500">
-        <span class="h-1.5 w-1.5 rounded-full {wsState.connected ? 'bg-green-400' : 'bg-zinc-600'}"></span>
+    <div class="px-4 py-3 border-t border-border">
+      <div class="flex items-center gap-2 text-xs text-muted-foreground">
+        <span class="h-1.5 w-1.5 rounded-full {wsState.connected ? 'bg-success' : 'bg-muted-foreground'}"></span>
         <span>{wsState.connected ? 'Live' : 'Offline'}</span>
         {#if version}
           <span class="ml-auto">v{version}</span>

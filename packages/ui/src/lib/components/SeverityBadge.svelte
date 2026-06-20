@@ -4,10 +4,10 @@
   const { severity }: { severity: Severity } = $props();
 
   const styles: Record<Severity, string> = {
-    critical: 'bg-red-950 text-red-300 ring-1 ring-red-700',
-    high:     'bg-orange-950 text-orange-300 ring-1 ring-orange-700',
-    medium:   'bg-yellow-950 text-yellow-300 ring-1 ring-yellow-700',
-    low:      'bg-zinc-800 text-zinc-400 ring-1 ring-zinc-600',
+    critical: 'bg-destructive/15 text-destructive ring-1 ring-destructive/30',
+    high:     'bg-warning/15 text-warning ring-1 ring-warning/30',
+    medium:   'bg-yellow-500/10 text-yellow-400 ring-1 ring-yellow-500/20',
+    low:      'bg-muted text-muted-foreground ring-1 ring-border',
   };
 
   const labels: Record<Severity, string> = {
