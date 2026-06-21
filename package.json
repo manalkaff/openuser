@@ -14,7 +14,7 @@
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:release": "pnpm --filter @openuser/shared build && pnpm --filter @openuser/server build && pnpm --filter @openuser/mcp build && pnpm --filter @openuser/ui build && pnpm --filter openuser build && node scripts/copy-ui.mjs && node scripts/copy-skills.mjs && node scripts/copy-migrations.mjs",
+    "build:release": "pnpm --filter @openuser/shared build && pnpm --filter @openuser/server build && pnpm --filter @openuser/mcp build && pnpm --filter @openuser/ui build && pnpm --filter openuser-cli build && node scripts/copy-ui.mjs && node scripts/copy-skills.mjs && node scripts/copy-migrations.mjs && node scripts/copy-readme.mjs",
     "test:pack": "bash scripts/test-pack.sh",
     "demo": "node examples/demo-shop/server.mjs"
   },

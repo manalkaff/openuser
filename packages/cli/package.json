@@ -1,14 +1,24 @@
 {
-  "name": "openuser",
-  "version": "0.1.0",
+  "name": "openuser-cli",
+  "version": "0.1.1",
   "description": "Self-hostable agent-as-a-user testing platform",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=20" },
-  "bin": { "openuser": "./dist/index.js" },
-  "files": ["dist", "skills"],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "openuser": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md"
+  ],
   "main": "./dist/index.js",
-  "exports": { ".": "./dist/index.js" },
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -34,5 +44,7 @@
     "typescript": "^5.7",
     "vitest": "^3"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }

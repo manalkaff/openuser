@@ -20,7 +20,7 @@ reading style, and domain vocabulary — and navigates your running web app as t
 with no knowledge of your codebase.
 
 OpenUser is a self-hostable alternative to TestSprite. It runs entirely on your machine:
-one `npx openuser` command starts a local daemon with a Playwright browser, a SQLite database,
+one `npx openuser-cli` command starts a local daemon with a Playwright browser, a SQLite database,
 and a dashboard. No cloud account, no API keys, no data leaving your machine.
 
 The human interface is minimal by design. You talk to your agent — "test registration as a
@@ -54,7 +54,7 @@ results, and explaining findings in plain language. You review findings, not flo
 ### 1. Start the daemon
 
 ```bash
-npx openuser
+npx openuser-cli
 ```
 
 This starts the daemon on port 8737, opens the dashboard in your browser, and (on first run)
@@ -235,7 +235,7 @@ MCP-capable coding assistant. The manager and tester MCPs are standard stdio MCP
 
 | Feature | TestSprite | OpenUser |
 |---|---|---|
-| Self-hosted / offline | ✗ cloud-only | ✓ `npx openuser` |
+| Self-hosted / offline | ✗ cloud-only | ✓ `npx openuser-cli` |
 | User personas | ✗ | ✓ first-class |
 | Checkpoints | ✗ | ✓ first-class |
 | UX confusion findings | ✗ | ✓ signature feature |

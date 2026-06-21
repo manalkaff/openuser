@@ -35,3 +35,4 @@ Thumbs.db
 # packaging artifacts (build outputs, not source)
 packages/cli/skills/
 *.tgz
+packages/cli/README.md
