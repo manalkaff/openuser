@@ -4,11 +4,11 @@ import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-    // packages/ui/vite.config.ts is included by the .svelte-kit tsconfig (projectService)
+    // packages/ui/vite.config.ts and vitest.config.ts are included by the .svelte-kit tsconfig (projectService)
     // AND would match 'packages/*/*.config.ts' in allowDefaultProject, causing a conflict.
     // Exclude it from ESLint to avoid the "included by allowDefaultProject but also found
     // in project service" parsing error.
-    ignores: ['**/dist/**', '**/.svelte-kit/**', '**/build/**', 'node_modules/**', 'packages/ui/vite.config.ts'],
+    ignores: ['**/dist/**', '**/.svelte-kit/**', '**/build/**', 'node_modules/**', 'packages/ui/vite.config.ts', 'packages/ui/vitest.config.ts'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

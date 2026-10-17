@@ -29,6 +29,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Build packages (typecheck resolves workspace packages through their built types)
+        run: pnpm build
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -51,7 +54,7 @@ jobs:
       # The server's PlaywrightRunner integration tests launch a real browser,
       # so Chromium is required even for the non-e2e suite.
       - name: Install Playwright Chromium browser
-        run: npx playwright install chromium --with-deps
+        run: pnpm --filter @openuser/server exec playwright install chromium --with-deps
 
       - name: Build packages (server/mcp/cli need to be built before tests)
         run: pnpm build
@@ -88,7 +91,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium browser
-        run: npx playwright install chromium --with-deps
+        run: pnpm --filter @openuser/server exec playwright install chromium --with-deps
 
       # The e2e test spawns the *bundled* CLI daemon (packages/cli/dist/index.js),
       # which serves the SPA from dist/ui and runs migrations from dist/migrations.
