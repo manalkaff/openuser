@@ -1,0 +1,70 @@
+# OpenUser's factory config (ecommerce-digital SETUP-RUNBOOK ⚑S-73, wired like the APK repo, ⚑S-34/⚑S-35).
+# Read only by the vendored merge gate in .github/factory/ci/. `repos.main` is THIS repo: the
+# judge reads it as "this repo". The keys marked SHARED must equal ecommerce-digital's
+# factory/config.yml on dev; `factory/provision/apk_kit.py check --repo openuser` there reports
+# any difference. OpenUser is a published OSS package released from v* tags: its default branch
+# stays `main` and it has no production branch.
+version: 1
+
+repos:
+  main:
+    slug: manalkaff/openuser
+    default_branch: main
+
+bot:
+  reviewer_login: 23bisnis-factory-reviewer[bot]   # SHARED
+
+ci:
+  merge_gate_context: factory/merge-gate   # SHARED
+
+branches:
+  revert: "revert/{key}"        # SHARED
+
+# GATES §2 applied to OpenUser. Per file the highest match wins; the PR tier is the max over
+# files. The release and supply-chain files decide what lands on npm, so they are T3 (the
+# release workflow itself is gate integrity under .github/**). Product code is T1 by default;
+# the dashboard UI is T2 (design review). Agent instructions and tests are T1, docs are T0.
+tiers:
+  globs:
+    gate_integrity:             # always T3
+      - .github/**              # workflows, the vendored judge, this config, the PR template
+      - .claude/settings*.json
+      - .claude/hooks/**
+      - .githooks/**
+      - .mcp.json
+    T3:
+      - package.json
+      - "packages/*/package.json"
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .npmrc
+      - "packages/*/tsup.config.ts"
+      - scripts/**              # copy-ui, copy-skills, copy-migrations, test-pack: what ships
+      - LICENSE
+    T2:
+      - packages/ui/src/**
+      - packages/ui/static/**
+    T1:
+      - "**/CLAUDE.md"
+      - "**/AGENTS.md"
+      - .agents/**              # agent instructions are never T0 (GATES §2)
+      - .claude/skills/**
+      - skills/**               # the shipped openuser-manager / openuser-tester skills
+      - "packages/*/tests/**"
+      - "packages/*/__tests__/**"
+      - "**/*.test.ts"
+    T0:
+      - "**/*.md"
+      - docs/**
+      - examples/**
+      - .gitignore
+      - .prettierrc.json
+      - "**/graphify-out/**"
+  default: T1
+  # The tier label can only raise the tier (WORKFLOW §5.3).
+  labels: { "tier:T0": T0, "tier:T1": T1, "tier:T2": T2, "tier:T3": T3 }   # SHARED
+  reviews:                      # SHARED; GATES §2.1, status contexts posted by the reviewer App
+    T0: []
+    T1: [review/codex]
+    T2: [review/codex, review/design]
+    T3: [review/codex, review/security]

@@ -1,0 +1,76 @@
+# The merge gate (WORKFLOW §5.3) of the OpenUser repo: posts the `factory/merge-gate` commit
+# status (config ci.merge_gate_context) on a PR's head SHA. The `dev`-named ruleset that the
+# factory applies to this repo's default branch (`main`) requires it.
+#
+# The judge is ecommerce-digital's factory/ci/merge_gate.py, copied byte for byte under
+# .github/factory/ with this repo's own .github/factory/config.yml (SETUP-RUNBOOK ⚑S-73);
+# `factory/provision/apk_kit.py check --repo openuser` there reports any drift. Otherwise this
+# file matches the APK repo's merge-gate.yml, except that OpenUser's default branch is `main`
+# (there is no dev or production branch; releases are v* tags).
+#
+# Every trigger here runs the DEFAULT branch's copy of this workflow: pull_request_target
+# (not pull_request), status and workflow_dispatch. The job checks out main only, runs the judge
+# with main's config, and fetches the PR head as data (refs/factory/pr/<n>); no PR code is
+# checked out or run, so a PR cannot change its judge. The status is written with this
+# workflow's GITHUB_TOKEN, never an agent's token.
+
+name: Merge gate
+
+on:
+  pull_request_target:
+    branches: [main]
+    # `edited` re-checks the body lines; `reopened` re-posts after a close.
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled, edited]
+  # The reviewer bot posts review/* statuses; the job filters the rest out.
+  status:
+  # The tick dispatches this to reconcile (WORKFLOW §7), and after /resume (§10).
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to gate"
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+  actions: read
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number || inputs.pr || github.event.sha }}
+  cancel-in-progress: true
+
+jobs:
+  merge-gate:
+    name: merge-gate
+    if: github.event_name != 'status' || startsWith(github.event.context, 'review/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the default branch (never the PR)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet "pyyaml==6.0.2"
+
+      - name: Compute and post factory/merge-gate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FACTORY_HALTED: ${{ vars.FACTORY_HALTED }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+          SHA: ${{ github.event.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = status ]; then
+            exec python3 .github/factory/ci/merge_gate.py --sha "$SHA"
+          fi
+          exec python3 .github/factory/ci/merge_gate.py --pr "$PR"

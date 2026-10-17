@@ -1,0 +1,9 @@
+# Written by ecommerce-digital factory/provision/apk_kit.py vendor (SETUP-RUNBOOK ⚑S-35, ⚑S-73).
+# Do not edit the copies here: change them in ecommerce-digital, then re-vendor.
+source: manalkaff/ecommerce-digital@cbbbf62d1b41245a8fbeae4f62d634afe1a51bf2
+5ba23f246ee2a1f34b904c0407b3ff4e79bebca4  .github/factory/ci/merge_gate.py  factory/ci/merge_gate.py
+978a2ad9ce825eaa84175445e6e1e00701e5b7ee  .github/factory/ci/cilib.py  factory/ci/cilib.py
+8f5fd57b5245706fc922f5967be93624cc542484  .github/factory/bin/factory_cli/__init__.py  factory/bin/factory_cli/__init__.py
+340348c743edd32bb284726ec20cb5c738161803  .github/factory/bin/factory_cli/common.py  factory/bin/factory_cli/common.py
+d395547488376ada1bfa9beac09f8c7586abd6ec  .github/factory/bin/factory_cli/config.py  factory/bin/factory_cli/config.py
+f1cabe497c57400a63cbc407e949e56d9ef6f34d  .github/factory/bin/factory_cli/github.py  factory/bin/factory_cli/github.py
