@@ -18,7 +18,7 @@ export function registerBridge(program: Command): void {
       const home = process.env['OPENUSER_HOME'] ?? join(homedir(), '.openuser');
       let handle: ReturnType<typeof openDatabase> | undefined;
       try {
-        handle = openDatabase(home, { migrate: existsSync(bundledMigrationsDir()) });
+        handle = openDatabase(home, { migrate: existsSync(join(bundledMigrationsDir(), 'meta', '_journal.json')) });
         const { db } = handle;
         const port = readDaemonJson()?.port;
         const artifactUrl = (rel: string) =>

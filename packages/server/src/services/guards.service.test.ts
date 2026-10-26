@@ -14,7 +14,7 @@ import { SETTINGS_DEFAULTS, type SettingsShape } from './settings.service.js';
 
 function guardsWith(overrides: Partial<SettingsShape>): GuardsService {
   const s = { ...SETTINGS_DEFAULTS, ...overrides };
-  return new GuardsService({ get: (k) => s[k] } as never);
+  return new GuardsService({ get: (k: keyof SettingsShape) => s[k] } as never);
 }
 
 describe('matchDenyHost', () => {
