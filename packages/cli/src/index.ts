@@ -8,6 +8,7 @@ import { registerMcp } from './commands/mcp.js';
 import { registerInit } from './commands/init.js';
 import { registerSkills } from './commands/skills.js';
 import { registerDoctor } from './commands/doctor.js';
+import { registerBridge } from './commands/bridge.js';
 
 program
   .name('openuser')
@@ -19,6 +20,7 @@ registerMcp(program);
 registerInit(program);
 registerSkills(program);
 registerDoctor(program);
+registerBridge(program);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : String(err));

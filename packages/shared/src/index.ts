@@ -16,6 +16,20 @@ export {
   type TestSource,
 } from './enums.js';
 
+// Issue bridge (pure planning and formatting)
+export {
+  BRIDGE_MEDIUM_MIN_OCCURRENCES,
+  priorityForSeverity,
+  shouldFileFinding,
+  buildIssueTitle,
+  buildIssueBody,
+  buildOccurrenceComment,
+  runBridge,
+  type BridgeCandidate,
+  type BridgeExec,
+  type BridgeResult,
+} from './bridge.js';
+
 // Constants & helpers
 export { DEFAULT_PORT, newId, newRunToken, hashToken } from './helpers.js';
 

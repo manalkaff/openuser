@@ -6,13 +6,36 @@ export interface SettingsShape {
   watchdogMinutes: number;
   headed: boolean;
   browserChannel: string;
+  /** Shell command run before a run starts; `{tenant}` becomes `run-<runId>`. Empty = off. */
+  seedCommand: string;
+  /** Shell command run after a run ends to delete its tenant. Empty = off. */
+  teardownCommand: string;
+  maxSteps: number;
+  maxMinutes: number;
+  maxTokens: number;
+  /** Lock file taken by begin_run and held until the run ends. Empty = off. */
+  lockFile: string;
+  /** Hosts (and their subdomains) a run must never target. */
+  denyHosts: string[];
 }
 
 export const SETTINGS_DEFAULTS: SettingsShape = {
   watchdogMinutes: 5,
   headed: false,
   browserChannel: 'chromium',
+  seedCommand: '',
+  teardownCommand: '',
+  maxSteps: 150,
+  maxMinutes: 20,
+  maxTokens: 400_000,
+  lockFile: '',
+  denyHosts: ['23bisnis.com'],
 };
+
+function matchesType(value: unknown, fallback: unknown): boolean {
+  if (Array.isArray(fallback)) return Array.isArray(value) && value.every((v) => typeof v === 'string');
+  return typeof value === typeof fallback;
+}
 
 export class SettingsService {
   constructor(private readonly db: DB) {}
@@ -24,7 +47,7 @@ export class SettingsService {
       const key = row.key as keyof SettingsShape;
       const fallback = SETTINGS_DEFAULTS[key];
       // Fix #6: defensive typeof guard — fall back to default if stored type doesn't match
-      if (typeof row.value !== typeof fallback) {
+      if (!matchesType(row.value, fallback)) {
         result[row.key] = fallback;
       } else {
         result[row.key] = row.value;
@@ -44,7 +67,7 @@ export class SettingsService {
     }
     // Fix #6: defensive typeof guard — fall back to default if stored type doesn't match
     const fallback = SETTINGS_DEFAULTS[key];
-    if (typeof row.value !== typeof fallback) {
+    if (!matchesType(row.value, fallback)) {
       return fallback;
     }
     return row.value as SettingsShape[K];

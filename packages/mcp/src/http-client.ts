@@ -1,4 +1,5 @@
 import type {
+  BridgeCandidate,
   PrepareRunResponse,
   PageSnapshot,
   TesterAction,
@@ -238,6 +239,16 @@ export function getRun(opts: HttpClientOptions, runId: string): Promise<Run & { 
 
 export function getRunReport(opts: HttpClientOptions, runId: string): Promise<string> {
   return req<string>(opts.baseUrl, 'GET', `/api/runs/${runId}/report`);
+}
+
+// ─── Manager: Issue bridge ────────────────────────────────────────────────────
+
+export function getBridgeFindings(opts: HttpClientOptions, projectId: string): Promise<BridgeCandidate[]> {
+  return req<BridgeCandidate[]>(opts.baseUrl, 'GET', `/api/bridge/findings?projectId=${encodeURIComponent(projectId)}`);
+}
+
+export async function recordFindingIssue(opts: HttpClientOptions, findingId: string, issueId: string): Promise<void> {
+  await req<{ ok: boolean }>(opts.baseUrl, 'POST', `/api/findings/${findingId}/issue`, { issueId });
 }
 
 // ─── Manager: Findings ────────────────────────────────────────────────────────

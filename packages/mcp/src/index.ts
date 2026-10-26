@@ -4,6 +4,8 @@ import { resolveDaemonBaseUrl } from './daemon.js';
 import { registerManagerTools } from './manager/index.js';
 import { registerTesterTools } from './tester/index.js';
 
+export { bridgeProject, bridgeWithStore, type BridgeStore } from './bridge.js';
+
 export type McpRole = 'manager' | 'tester';
 
 export async function runMcp(role: McpRole): Promise<void> {

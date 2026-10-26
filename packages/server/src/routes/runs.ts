@@ -5,6 +5,8 @@ import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { ServerContext } from '../app.js';
 import { RunLifecycleService, NotFoundError } from '../services/run-lifecycle.service.js';
+import { DeniedHostError } from '../services/guards.service.js';
+import { runTelemetry } from '../services/telemetry.service.js';
 import { ReportService } from '../services/report.service.js';
 import { runs, steps, findings, tests, logEvents } from '../db/schema.js';
 
@@ -29,7 +31,7 @@ const PromoteRunBody = z.object({
 
 export function runsRouter(ctx: ServerContext) {
   const app = new Hono();
-  const lifecycle = new RunLifecycleService(ctx.db, ctx.wsHub);
+  const lifecycle = new RunLifecycleService(ctx.db, ctx.wsHub, (urls) => ctx.guards.assertTargetAllowed(urls));
   const reportService = new ReportService(ctx.db);
 
   // POST /api/runs — prepare
@@ -49,6 +51,7 @@ export function runsRouter(ctx: ServerContext) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (err instanceof NotFoundError) return c.json({ error: msg }, 404);
+      if (err instanceof DeniedHostError) return c.json({ error: msg }, 403);
       return c.json({ error: msg }, 400);
     }
   });
@@ -79,7 +82,7 @@ export function runsRouter(ctx: ServerContext) {
     const allSteps = ctx.db.select().from(steps).where(eq(steps.runId, id)).orderBy(steps.idx).all();
     const allFindings = ctx.db.select().from(findings).where(eq(findings.runId, id)).orderBy(findings.createdAt).all();
 
-    return c.json({ ...run, steps: allSteps, findings: allFindings });
+    return c.json({ ...run, steps: allSteps, findings: allFindings, telemetry: runTelemetry(run, allSteps.length) });
   });
 
   // GET /api/runs/:id/events
@@ -114,7 +117,7 @@ export function runsRouter(ctx: ServerContext) {
     const run = ctx.db.select().from(runs).where(eq(runs.id, id)).get();
     if (!run) return c.json({ error: 'Run not found' }, 404);
 
-    const terminal = ['passed', 'failed', 'blocked', 'aborted'];
+    const terminal = ['passed', 'failed', 'blocked', 'aborted', 'budget_exhausted'];
     if (!terminal.includes(run.status)) {
       return c.json({ error: 'Run must be in a terminal state to promote' }, 409);
     }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// RunStatus: pending | running | passed | blocked | failed | aborted
-export const RunStatusSchema = z.enum(['pending', 'running', 'passed', 'blocked', 'failed', 'aborted']);
+// RunStatus: pending | running | passed | blocked | failed | aborted | budget_exhausted
+export const RunStatusSchema = z.enum(['pending', 'running', 'passed', 'blocked', 'failed', 'aborted', 'budget_exhausted']);
 export type RunStatus = z.infer<typeof RunStatusSchema>;
 
 // Verdict: goal_achieved | blocked | partial

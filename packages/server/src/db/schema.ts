@@ -36,7 +36,7 @@ export type FindingEvidence = {
   }[];
 };
 
-export type RunStatus = 'pending' | 'running' | 'passed' | 'blocked' | 'failed' | 'aborted';
+export type RunStatus = 'pending' | 'running' | 'passed' | 'blocked' | 'failed' | 'aborted' | 'budget_exhausted';
 export type Verdict = 'goal_achieved' | 'blocked' | 'partial';
 export type FindingType = 'functional' | 'console' | 'network' | 'ux_confusion';
 export type Severity = 'critical' | 'high' | 'medium' | 'low';
@@ -111,6 +111,9 @@ export const runs = sqliteTable('runs', {
   agentLabel: text('agent_label'),
   tokenHash: text('token_hash').notNull(),
   videoPath: text('video_path'),
+  tokens: integer('tokens').notNull().default(0),
+  newFindings: integer('new_findings').notNull().default(0),
+  duplicateFindings: integer('duplicate_findings').notNull().default(0),
   startedAt: integer('started_at', { mode: 'timestamp_ms' }),
   finishedAt: integer('finished_at', { mode: 'timestamp_ms' }),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -142,6 +145,10 @@ export const findings = sqliteTable('findings', {
   description: text('description').notNull(),
   evidence: text('evidence', { mode: 'json' }).$type<FindingEvidence>().notNull(),
   status: text('status').$type<FindingStatus>().notNull().default('open'),
+  fingerprint: text('fingerprint'),
+  occurrences: integer('occurrences').notNull().default(1),
+  lastSeen: integer('last_seen', { mode: 'timestamp_ms' }),
+  issueId: text('issue_id'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
 

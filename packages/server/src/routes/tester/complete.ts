@@ -36,7 +36,12 @@ export function completeRouter(
       activeSessions.delete(run.id);
     }
 
-    const status = lifecycle.finalize(run.id, body.verdict, body.summary, videoPath);
+    const overTokens = body.tokens !== undefined && body.tokens >= ctx.settings.get('maxTokens');
+    const status = lifecycle.finalize(run.id, body.verdict, body.summary, videoPath, {
+      ...(body.tokens !== undefined ? { tokens: body.tokens } : {}),
+      ...(overTokens ? { status: 'budget_exhausted' as const } : {}),
+    });
+    await ctx.guards.release(run.id);
 
     const allFindings = ctx.db.select().from(findings).where(eq(findings.runId, run.id)).all();
 

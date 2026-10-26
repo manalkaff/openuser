@@ -10,6 +10,7 @@
     blocked:  'bg-warning/15 text-warning',
     failed:   'bg-destructive/15 text-destructive',
     aborted:  'bg-muted text-muted-foreground',
+    budget_exhausted: 'bg-muted text-muted-foreground',
   };
 
   const labels: Record<RunStatus, string> = {
@@ -19,6 +20,7 @@
     blocked:  'Blocked',
     failed:   'Failed',
     aborted:  'Aborted',
+    budget_exhausted: 'Budget exhausted',
   };
 </script>
 

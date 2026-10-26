@@ -12,7 +12,7 @@ const PatchFindingBody = z.object({
 export function findingsRouter(ctx: ServerContext) {
   const app = new Hono();
 
-  // GET /api/findings?projectId&severity&type&status
+  // GET /api/findings?projectId&severity&type&status — one row per fingerprint
   app.get('/api/findings', (c) => {
     const projectId = c.req.query('projectId');
     const severity = c.req.query('severity');
@@ -29,7 +29,7 @@ export function findingsRouter(ctx: ServerContext) {
       ? ctx.db.select().from(findings).where(and(...conditions)).all()
       : ctx.db.select().from(findings).all();
 
-    return c.json(result);
+    return c.json(result.map((row) => ({ ...row, lastSeen: row.lastSeen ?? row.createdAt })));
   });
 
   // PATCH /api/findings/:id

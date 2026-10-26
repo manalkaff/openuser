@@ -36,6 +36,13 @@ export function actionRouter(
       return c.json({ error: 'No active runner session for this run' }, 500);
     }
 
+    // Time budget: a run past its wall-clock limit ends here instead of taking another step
+    const overTime = ctx.runEnd.checkRun(run);
+    if (overTime && overTime.kind === 'minutes') {
+      await ctx.runEnd.exhaust(run, overTime);
+      return c.json({ error: `Run ended: budget exhausted (${overTime.reason})`, budgetExhausted: true }, 409);
+    }
+
     // Reset watchdog on every tester call
     watchdogReset(run.id);
 
@@ -85,15 +92,21 @@ export function actionRouter(
     logPipeline.setCurrentStep(run.id, nextIdx);
     ctx.wsHub.broadcastRun(run.id, 'step.created', step);
 
+    // Step budget: the step that reaches the limit is the last one
+    const limit = ctx.runEnd.checkRun(run);
+    const budgetExhausted = limit !== null;
+    if (limit) await ctx.runEnd.exhaust(run, limit);
+
     if (actionError) {
       return c.json({
         ok: false,
         error: actionError,
         snapshot: result?.snapshot ?? null,
+        ...(budgetExhausted ? { budgetExhausted } : {}),
       });
     }
 
-    return c.json({ ok: true, snapshot: result!.snapshot });
+    return c.json({ ok: true, snapshot: result!.snapshot, ...(budgetExhausted ? { budgetExhausted } : {}) });
   });
 
   return app;

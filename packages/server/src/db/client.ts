@@ -13,7 +13,7 @@ export interface DatabaseHandle {
   sqlite: Database.Database;
 }
 
-export function openDatabase(homeDir: string): DatabaseHandle {
+export function openDatabase(homeDir: string, opts: { migrate?: boolean } = {}): DatabaseHandle {
   mkdirSync(homeDir, { recursive: true });
 
   const dbPath = join(homeDir, 'openuser.db');
@@ -29,7 +29,7 @@ export function openDatabase(homeDir: string): DatabaseHandle {
   // In dev: import.meta.url = .../src/db/client.ts → ./migrations → src/db/migrations/ ✓
   // Bundled: import.meta.url = .../dist/index.js → ./migrations → dist/migrations/ ✓
   const migrationsFolder = fileURLToPath(new URL('./migrations', import.meta.url));
-  migrate(db, { migrationsFolder });
+  if (opts.migrate !== false) migrate(db, { migrationsFolder });
 
   return { db, sqlite };
 }

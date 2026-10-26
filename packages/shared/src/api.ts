@@ -144,6 +144,10 @@ export const TesterFindingBodySchema = z.object({
   severity: SeveritySchema,
   title: z.string(),
   description: z.string(),
+  /** Page route where the defect was seen; ids are stripped before fingerprinting. */
+  route: z.string().optional(),
+  /** Failing selector, used in the fingerprint when there is no stack frame. */
+  selector: z.string().optional(),
 });
 export type TesterFindingBody = z.infer<typeof TesterFindingBodySchema>;
 
@@ -157,6 +161,8 @@ export type TesterCheckpointBody = z.infer<typeof TesterCheckpointBodySchema>;
 export const TesterCompleteBodySchema = z.object({
   verdict: VerdictSchema,
   summary: z.string(),
+  /** Tokens the calling agent spent on this run (OpenUser makes no model calls itself). */
+  tokens: z.number().int().nonnegative().optional(),
 });
 export type TesterCompleteBody = z.infer<typeof TesterCompleteBodySchema>;
 

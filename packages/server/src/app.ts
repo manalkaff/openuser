@@ -7,6 +7,10 @@ import { createServer as createHttpServer } from 'node:http';
 import type { Server } from 'node:http';
 import { openDatabase, type DB } from './db/client.js';
 import { SettingsService } from './services/settings.service.js';
+import { GuardsService } from './services/guards.service.js';
+import { RunEndService } from './services/run-end.service.js';
+import { telemetryRouter } from './routes/telemetry.js';
+import { bridgeRouter } from './routes/bridge.js';
 import { WatchdogService } from './services/watchdog.service.js';
 import { LogPipelineService } from './services/log-pipeline.service.js';
 import { WsHub } from './ws/hub.js';
@@ -42,6 +46,8 @@ export interface ServerContext {
   settings: SettingsService;
   wsHub: WsHub;
   activeSessions: ActiveSessions;
+  guards: GuardsService;
+  runEnd: RunEndService;
   watchdogReset?: (runId: string) => void;
   watchdogCancel?: (runId: string) => void;
 }
@@ -117,6 +123,8 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
   app.route('/', findingsRouter(ctx));
   app.route('/', checkpointsRouter(ctx));
   app.route('/', settingsRouter(ctx));
+  app.route('/', telemetryRouter(ctx));
+  app.route('/', bridgeRouter(ctx));
 
   // Tester routes (Bearer token auth)
   app.route('/', beginRouter(ctx, ctx.activeSessions, logPipeline));
@@ -185,6 +193,8 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   const wsHub = new WsHub();
   const activeSessions: ActiveSessions = new Map();
 
+  const guards = new GuardsService(settingsService);
+
   // Watchdog needs to know about activeSessions at construction time
   const watchdog = new WatchdogService(
     db,
@@ -192,6 +202,7 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     wsHub,
     activeSessions,
     () => settingsService.get('watchdogMinutes'),
+    (runId) => guards.release(runId),
   );
 
   const ctx: ServerContext = {
@@ -200,6 +211,8 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     settings: settingsService,
     wsHub,
     activeSessions,
+    guards,
+    runEnd: new RunEndService(db, homeDir, wsHub, settingsService, activeSessions, guards, (id) => watchdog.cancel(id)),
     watchdogReset: (id) => watchdog.reset(id),
     watchdogCancel: (id) => watchdog.cancel(id),
   };
