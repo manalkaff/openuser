@@ -36,7 +36,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install chromium
+        run: pnpm --filter @openuser/server exec playwright install chromium --with-deps
 
       - name: Build release
         run: pnpm build:release
