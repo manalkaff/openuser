@@ -29,7 +29,11 @@ export function completeRouter(
     // A run past its wall-clock limit, or reporting tokens at the limit, ends as budget_exhausted
     // through the common path (checkpoint first), whatever verdict the tester gives.
     const limit =
-      (await ctx.runEnd.enforceDeadline(run)) ??
+      (await ctx.runEnd.enforceDeadline(run, {
+        ...(body.tokens !== undefined ? { tokens: body.tokens } : {}),
+        verdict: body.verdict,
+        summary: body.summary,
+      })) ??
       (body.tokens !== undefined && body.tokens >= ctx.settings.get('maxTokens')
         ? ({ kind: 'tokens', reason: `${ctx.settings.get('maxTokens')} tokens` } as const)
         : null);

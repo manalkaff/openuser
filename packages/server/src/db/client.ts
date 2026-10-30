@@ -40,41 +40,30 @@ export function openDatabase(homeDir: string, opts: { migrate?: boolean } = {}):
 }
 
 /**
- * Give findings that predate fingerprints a canonical fingerprint (route unknown) and merge the
- * historical duplicates into the earliest row, keeping every run's link and the summed occurrences.
+ * Fingerprint findings that predate fingerprints, using the page of their step as the route.
+ * Never merges or deletes: a row whose fingerprint another row in the project already holds
+ * keeps a NULL fingerprint (the earliest row holds it), and nothing else is touched.
  */
 export function backfillFingerprints(db: DB): void {
   const legacy = db.select().from(schema.findings).where(isNull(schema.findings.fingerprint)).orderBy(schema.findings.createdAt).all();
   if (legacy.length === 0) return;
   db.transaction((tx) => {
     for (const f of legacy) {
+      const step = f.stepId ? tx.select().from(schema.steps).where(eq(schema.steps.id, f.stepId)).get() : undefined;
       const fingerprint = computeFingerprint({
         projectId: f.projectId,
+        route: step?.pageUrl ?? undefined,
         category: f.type,
         title: f.title,
         description: f.description,
       });
-      const canon = tx
-        .select()
+      const taken = tx
+        .select({ id: schema.findings.id })
         .from(schema.findings)
         .where(and(eq(schema.findings.projectId, f.projectId), eq(schema.findings.fingerprint, fingerprint)))
         .get();
-      if (!canon) {
-        tx.update(schema.findings).set({ fingerprint }).where(eq(schema.findings.id, f.id)).run();
-        continue;
-      }
-      tx.update(schema.findings)
-        .set({
-          occurrences: canon.occurrences + f.occurrences,
-          lastSeen: new Date(Math.max((canon.lastSeen ?? canon.createdAt).getTime(), (f.lastSeen ?? f.createdAt).getTime())),
-          issueId: canon.issueId ?? f.issueId,
-        })
-        .where(eq(schema.findings.id, canon.id))
-        .run();
-      const links = tx.select().from(schema.runFindings).where(eq(schema.runFindings.findingId, f.id)).all();
-      for (const l of links) tx.insert(schema.runFindings).values({ ...l, findingId: canon.id }).onConflictDoNothing().run();
-      tx.delete(schema.runFindings).where(eq(schema.runFindings.findingId, f.id)).run();
-      tx.delete(schema.findings).where(eq(schema.findings.id, f.id)).run();
+      if (taken) continue;
+      tx.update(schema.findings).set({ fingerprint }).where(eq(schema.findings.id, f.id)).run();
     }
   });
 }

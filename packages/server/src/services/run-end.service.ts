@@ -82,10 +82,13 @@ export class RunEndService {
   }
 
   /** Called before accepting any tester operation: ends the run when its wall-clock limit has passed. */
-  async enforceDeadline(run: Run): Promise<BudgetLimit | null> {
+  async enforceDeadline(
+    run: Run,
+    extra: { tokens?: number; verdict?: Verdict; summary?: string } = {},
+  ): Promise<BudgetLimit | null> {
     const limit = this.checkRun(run);
     if (limit?.kind !== 'minutes') return null;
-    await this.exhaust(run, limit);
+    await this.exhaust(run, limit, extra);
     return limit;
   }
 
