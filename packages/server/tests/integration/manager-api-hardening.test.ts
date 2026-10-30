@@ -2,12 +2,82 @@
 // file) come only from config or CLI flags, and the manager API refuses foreign Host headers.
 import { describe, it, expect, afterEach } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { request } from 'node:http';
+import { request, createServer as createHttpServer } from 'node:http';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { startHarness, api, type Harness } from '../acceptance/helpers.js';
-import { createServer } from '../../src/app.js';
+import { api } from '../acceptance/helpers.js';
+import { createServer, type ServerOptions } from '../../src/app.js';
 import { openDatabase } from '../../src/db/client.js';
+
+// A harness that starts the daemon with server options (guard config, allowed hosts). QA's
+// acceptance harness takes none, and its files belong to QA, so this one lives here.
+const PERSONA = {
+  name: 'Alice',
+  role: 'buyer',
+  identity: { fullName: 'Alice Tester', roleLabel: 'first-time buyer', locale: 'en-US' },
+  behavior: {
+    techSavviness: 'average',
+    patience: 'medium',
+    readingStyle: 'reads',
+    device: 'desktop',
+    viewport: { width: 1280, height: 720 },
+    habits: 'shops online occasionally',
+  },
+  knowledge: { productKnowledge: 'none', expectations: 'easy checkout', vocabulary: 'product, cart' },
+};
+
+type ApiResult = ReturnType<typeof api>;
+
+interface Harness {
+  port: number;
+  prepare(): ApiResult;
+  begin(token: string): ApiResult;
+  complete(token: string): ApiResult;
+  startRun(): Promise<{ runId: string; token: string; beginStatus: number }>;
+  close(): Promise<void>;
+}
+
+async function startHarness(
+  baseUrl?: string,
+  serverOpts: Omit<ServerOptions, 'homeDir' | 'port'> = {},
+): Promise<Harness> {
+  const homeDir = mkdtempSync(join(tmpdir(), 'openuser-guarded-'));
+  const srv = await createServer({ ...serverOpts, homeDir, port: 0 });
+  const target = createHttpServer((_req, res) => res.writeHead(200).end('OK'));
+  await new Promise<void>((resolve) => target.listen(0, '127.0.0.1', resolve));
+  const targetPort = (target.address() as { port: number }).port;
+  const port = srv.port;
+
+  const project = await api(port, 'POST', '/api/projects', {
+    name: 'Guarded Project',
+    path: '/tmp/guarded-proj',
+    baseUrl: baseUrl ?? `http://127.0.0.1:${targetPort}`,
+  });
+  const projectId = project.body.id as string;
+  const persona = await api(port, 'POST', `/api/projects/${projectId}/personas`, PERSONA);
+  const personaId = persona.body.id as string;
+
+  const prepare = () =>
+    api(port, 'POST', '/api/runs', { projectId, adhocGoal: 'Explore the home page', personaId });
+  const begin = (token: string) => api(port, 'POST', '/api/tester/begin', {}, token);
+  return {
+    port,
+    prepare,
+    begin,
+    complete: (token) =>
+      api(port, 'POST', '/api/tester/complete', { verdict: 'partial', summary: 'done' }, token),
+    async startRun() {
+      const prep = await prepare();
+      const { runId, token } = prep.body as { runId: string; token: string };
+      return { runId, token, beginStatus: (await begin(token)).status };
+    },
+    async close() {
+      target.close();
+      await srv.close();
+      rmSync(homeDir, { recursive: true, force: true });
+    },
+  };
+}
 
 /** A raw request so the test controls the Host and Origin headers (fetch does not allow it). */
 function rawGet(port: number, path: string, headers: Record<string, string>): Promise<number> {
@@ -123,10 +193,19 @@ describe('BISNIS-41 manager API hardening', () => {
       guards: { denyHosts: ['not23bisnis.com'] },
     });
     const s = await api(h.port, 'GET', '/api/settings');
-    expect(s.body.denyHosts).toEqual(['not23bisnis.com']);
+    expect(s.body.denyHosts).toEqual(['23bisnis.com', 'not23bisnis.com']);
     const denied = await h.prepare();
     expect(denied.status).toBe(403);
     expect(JSON.stringify(denied.body)).toContain('not23bisnis.com');
+  });
+
+  it('AC7 via config: a deny list without 23bisnis.com still refuses an app.23bisnis.com target', async () => {
+    h = await startHarness('https://app.23bisnis.com', {
+      guards: { denyHosts: ['other.example'] },
+    });
+    const denied = await h.prepare();
+    expect(denied.status).toBe(403);
+    expect(JSON.stringify(denied.body)).toContain('23bisnis.com');
   });
 
   it('reads the guard settings from <home>/config.json, and CLI options win over it', async () => {
@@ -143,7 +222,7 @@ describe('BISNIS-41 manager API hardening', () => {
     try {
       const s = await api(srv.port, 'GET', '/api/settings');
       expect(s.body.lockFile).toBe('/var/lock/x.lock');
-      expect(s.body.denyHosts).toEqual(['b.test']);
+      expect(s.body.denyHosts).toEqual(['23bisnis.com', 'b.test']);
       expect(await rawGet(srv.port, '/api/health', { Host: `box.lan:${srv.port}` })).toBe(200);
     } finally {
       await srv.close();

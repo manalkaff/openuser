@@ -15,7 +15,7 @@ export interface SettingsShape {
   maxTokens: number;
   /** Lock file taken by begin_run and held until the run ends. Empty = off. */
   lockFile: string;
-  /** Hosts (and their subdomains) a run must never target. */
+  /** Hosts (and their subdomains) a run must never target. Config adds to the built-in list. */
   denyHosts: string[];
 }
 
@@ -74,6 +74,11 @@ export class SettingsService {
   }
 
   private guard<K extends GuardKey>(key: K): SettingsShape[K] {
+    if (key === 'denyHosts') {
+      // Config only adds hosts: the built-in production list (AC7, 23bisnis.com) always applies.
+      const merged = new Set([...SETTINGS_DEFAULTS.denyHosts, ...(this.guards.denyHosts ?? [])]);
+      return [...merged] as SettingsShape[K];
+    }
     return (this.guards[key] ?? SETTINGS_DEFAULTS[key]) as SettingsShape[K];
   }
 

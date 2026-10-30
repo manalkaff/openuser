@@ -58,7 +58,7 @@ export function registerStart(program: Command): void {
     .option('--seed-command <cmd>', 'Shell command run before each run; {tenant} becomes run-<id>')
     .option('--teardown-command <cmd>', "Shell command run after each run to delete its tenant")
     .option('--lock-file <path>', 'Lock file held while a run is active (one run at a time)')
-    .option('--deny-host <host>', 'Production host a run must never target (repeatable; replaces the default list)', collect)
+    .option('--deny-host <host>', 'Production host a run must never target (repeatable; adds to the built-in list, which keeps 23bisnis.com)', collect)
     .option('--allowed-host <host>', 'Extra hostname the API accepts in Host/Origin (repeatable)', collect)
     .action(async (opts: StartOptions) => {
       await runStart(opts);

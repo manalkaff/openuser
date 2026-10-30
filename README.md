@@ -239,8 +239,9 @@ guard.
 }
 ```
 
-The flags are `--seed-command`, `--teardown-command`, `--lock-file`, `--deny-host` (repeatable;
-it replaces the default list) and `--allowed-host` (repeatable). The API answers only requests
+The flags are `--seed-command`, `--teardown-command`, `--lock-file`, `--deny-host` (repeatable)
+and `--allowed-host` (repeatable). `denyHosts` and `--deny-host` add to the built-in deny list,
+which always includes `23bisnis.com`; no config can remove it. The API answers only requests
 whose `Host`, and `Origin` when sent, is `127.0.0.1`, `localhost`, `::1`, the `--host` you bound
 to, or a name in `allowedHosts`. That blocks DNS rebinding and cross-site pages. If you bind to
 `0.0.0.0`, add the name or IP your other machines use to `allowedHosts`.
