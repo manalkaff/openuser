@@ -12,7 +12,7 @@ env:
 jobs:
   lint-typecheck:
     name: Lint & typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +37,7 @@ jobs:
 
   unit:
     name: Unit & integration tests (excl. e2e)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -76,7 +76,7 @@ jobs:
 
   integration-e2e:
     name: Full-lifecycle e2e (demo-shop)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -115,7 +115,7 @@ jobs:
 
   ui-build:
     name: UI production build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -137,7 +137,7 @@ jobs:
 
   publish-dry-run:
     name: CLI publish dry-run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
