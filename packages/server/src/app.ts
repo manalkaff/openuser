@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import type { Server } from 'node:http';
 import { openDatabase, type DB } from './db/client.js';
-import { SettingsService } from './services/settings.service.js';
+import { SettingsService, type GuardConfig } from './services/settings.service.js';
+import { allowedHostnames, hostAllowlist, readDaemonConfig } from './daemon-config.js';
 import { GuardsService } from './services/guards.service.js';
 import { RunEndService } from './services/run-end.service.js';
 import { telemetryRouter } from './routes/telemetry.js';
@@ -38,6 +39,10 @@ export interface ServerOptions {
   port?: number;
   host?: string;
   uiDir?: string;
+  /** Guard settings from CLI flags. They win over `<home>/config.json`; the API cannot set them. */
+  guards?: GuardConfig;
+  /** Extra hostnames the API accepts in `Host`/`Origin`, besides loopback and the bound host. */
+  allowedHosts?: string[];
 }
 
 export interface ServerContext {
@@ -106,15 +111,18 @@ function writeDaemonJson(homeDir: string, port: number, version: string): void {
   );
 }
 
-export function buildApp(ctx: ServerContext, version: string, uiDir?: string) {
+export function buildApp(ctx: ServerContext, version: string, uiDir?: string, allowedHosts = allowedHostnames('127.0.0.1', [])) {
   const app = new Hono();
+
+  // Every route, including /ws, artifacts and the dashboard, checks Host and Origin first.
+  app.use('*', hostAllowlist(allowedHosts));
 
   // Shared services passed to routes
   const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
   const watchdogReset = (runId: string) => ctx.watchdogReset?.(runId);
   const watchdogCancel = (runId: string) => ctx.watchdogCancel?.(runId);
 
-  // Manager routes (no auth)
+  // Manager routes (no auth; the Host/Origin allowlist above keeps them to this machine)
   app.route('/', healthRouter(version));
   app.route('/', projectsRouter(ctx));
   app.route('/', personasRouter(ctx));
@@ -188,8 +196,9 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   mkdirSync(join(homeDir, 'artifacts'), { recursive: true });
   mkdirSync(join(homeDir, 'checkpoints'), { recursive: true });
 
+  const fileConfig = readDaemonConfig(homeDir);
   const { db, sqlite } = openDatabase(homeDir);
-  const settingsService = new SettingsService(db);
+  const settingsService = new SettingsService(db, { ...fileConfig.guards, ...opts.guards });
   const wsHub = new WsHub();
   const activeSessions: ActiveSessions = new Map();
 
@@ -233,9 +242,10 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   }
 
   const uiDir = opts.uiDir ?? process.env['OPENUSER_UI_DIR'];
-  const app = buildApp(ctx, version, uiDir);
-
   const host = opts.host ?? '127.0.0.1';
+  const allowed = allowedHostnames(host, [...fileConfig.allowedHosts, ...(opts.allowedHosts ?? [])]);
+  const app = buildApp(ctx, version, uiDir, allowed);
+
   const startPort = opts.port ?? DEFAULT_PORT;
   const listenPort = startPort === 0 ? 0 : await findFreePort(startPort, host);
 
