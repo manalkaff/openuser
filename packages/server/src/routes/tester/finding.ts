@@ -10,6 +10,7 @@ import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
 import { findings, steps, runs } from '../../db/schema.js';
 import { and, sql } from 'drizzle-orm';
+import { linkRunFinding } from '../../services/run-findings.js';
 import { computeFingerprint } from '../../services/fingerprint.js';
 import type { FindingEvidence } from '../../db/schema.js';
 import type { LogPipelineService } from '../../services/log-pipeline.service.js';
@@ -29,6 +30,11 @@ export function findingRouter(
 
     if (run.status !== 'running') {
       return c.json({ error: 'Run is not in running state' }, 409);
+    }
+
+    const expired = await ctx.runEnd.enforceDeadline(run);
+    if (expired) {
+      return c.json({ error: `Run ended: budget exhausted (${expired.reason})`, budgetExhausted: true }, 409);
     }
 
     watchdogReset(run.id);
@@ -55,6 +61,7 @@ export function findingRouter(
         .set({ occurrences: sql`${findings.occurrences} + 1`, lastSeen: new Date() })
         .where(eq(findings.id, known.id))
         .run();
+      linkRunFinding(ctx.db, run.id, known.id);
       ctx.db.update(runs).set({ duplicateFindings: sql`${runs.duplicateFindings} + 1` }).where(eq(runs.id, run.id)).run();
       const bumped = ctx.db.select().from(findings).where(eq(findings.id, known.id)).get()!;
       ctx.wsHub.broadcastRun(run.id, 'finding.created', bumped);
@@ -128,6 +135,7 @@ export function findingRouter(
       lastSeen: new Date(),
       createdAt: new Date(),
     }).run();
+    linkRunFinding(ctx.db, run.id, id);
     ctx.db.update(runs).set({ newFindings: sql`${runs.newFindings} + 1` }).where(eq(runs.id, run.id)).run();
 
     const finding = ctx.db.select().from(findings).where(eq(findings.id, id)).get()!;

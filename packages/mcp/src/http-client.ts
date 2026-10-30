@@ -307,7 +307,7 @@ export function testerScreenshot(opts: HttpClientOptions): Promise<TesterScreens
 
 export function testerFinding(
   opts: HttpClientOptions,
-  body: { type: string; severity: string; title: string; description: string },
+  body: { type: string; severity: string; title: string; description: string; route?: string | undefined; selector?: string | undefined },
 ): Promise<TesterFindingResponse> {
   return req<TesterFindingResponse>(opts.baseUrl, 'POST', '/api/tester/finding', body, opts.token);
 }
@@ -321,7 +321,7 @@ export function testerCheckpoint(
 
 export function testerComplete(
   opts: HttpClientOptions,
-  body: { verdict: string; summary: string },
+  body: { verdict: string; summary: string; tokens?: number | undefined },
 ): Promise<TesterCompleteResponse> {
   return req<TesterCompleteResponse>(opts.baseUrl, 'POST', '/api/tester/complete', body, opts.token);
 }

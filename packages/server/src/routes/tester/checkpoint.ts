@@ -22,6 +22,11 @@ export function checkpointTesterRouter(
       return c.json({ error: 'Run is not in running state' }, 409);
     }
 
+    const expired = await ctx.runEnd.enforceDeadline(run);
+    if (expired) {
+      return c.json({ error: `Run ended: budget exhausted (${expired.reason})`, budgetExhausted: true }, 409);
+    }
+
     watchdogReset(run.id);
 
     const body = c.req.valid('json');

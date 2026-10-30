@@ -118,6 +118,7 @@ export function beginRouter(ctx: ServerContext, activeSessions: ActiveSessions, 
 
     // Mark run as running and start watchdog
     lifecycle.updateStatus(run.id, 'running', { startedAt: new Date() });
+    ctx.runEnd.scheduleDeadline(run.id);
     ctx.watchdogReset?.(run.id);
 
     const personaCard = lifecycle.buildPersonaCard(persona);

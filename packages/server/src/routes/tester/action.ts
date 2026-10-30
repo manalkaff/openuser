@@ -37,9 +37,8 @@ export function actionRouter(
     }
 
     // Time budget: a run past its wall-clock limit ends here instead of taking another step
-    const overTime = ctx.runEnd.checkRun(run);
-    if (overTime && overTime.kind === 'minutes') {
-      await ctx.runEnd.exhaust(run, overTime);
+    const overTime = await ctx.runEnd.enforceDeadline(run);
+    if (overTime) {
       return c.json({ error: `Run ended: budget exhausted (${overTime.reason})`, budgetExhausted: true }, 409);
     }
 

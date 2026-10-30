@@ -5,10 +5,11 @@ import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { ServerContext } from '../app.js';
 import { RunLifecycleService, NotFoundError } from '../services/run-lifecycle.service.js';
+import { findingsForRun } from '../services/run-findings.js';
 import { DeniedHostError } from '../services/guards.service.js';
 import { runTelemetry } from '../services/telemetry.service.js';
 import { ReportService } from '../services/report.service.js';
-import { runs, steps, findings, tests, logEvents } from '../db/schema.js';
+import { runs, steps, tests, logEvents } from '../db/schema.js';
 
 const PrepareRunBody = z.object({
   projectId: z.string().min(1),
@@ -80,7 +81,7 @@ export function runsRouter(ctx: ServerContext) {
     if (!run) return c.json({ error: 'Run not found' }, 404);
 
     const allSteps = ctx.db.select().from(steps).where(eq(steps.runId, id)).orderBy(steps.idx).all();
-    const allFindings = ctx.db.select().from(findings).where(eq(findings.runId, id)).orderBy(findings.createdAt).all();
+    const allFindings = findingsForRun(ctx.db, id);
 
     return c.json({ ...run, steps: allSteps, findings: allFindings, telemetry: runTelemetry(run, allSteps.length) });
   });

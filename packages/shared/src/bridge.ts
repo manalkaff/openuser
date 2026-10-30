@@ -84,6 +84,8 @@ export interface BridgeExec {
   /** Create a Multica issue; returns its id. */
   createIssue(args: { title: string; body: string; priority: Priority }): string;
   commentIssue(issueId: string, body: string): void;
+  /** Apply the kind:finding label; false when it could not be applied (never throws). */
+  labelIssue(issueId: string): boolean;
   /** Persist the issue id on the finding so a re-run comments instead of filing. */
   recordIssue(findingId: string, issueId: string): Promise<void>;
 }
@@ -93,13 +95,16 @@ export interface BridgeResult {
   commented: { findingId: string; issueId: string }[];
   digestOnly: number;
   skipped: number;
+  /** Issues that could not be labelled kind:finding; the next run retries them. */
+  unlabelled: string[];
 }
 
 export async function runBridge(candidates: BridgeCandidate[], exec: BridgeExec): Promise<BridgeResult> {
-  const result: BridgeResult = { filed: [], commented: [], digestOnly: 0, skipped: 0 };
+  const result: BridgeResult = { filed: [], commented: [], digestOnly: 0, skipped: 0, unlabelled: [] };
   for (const f of candidates) {
     if (f.issueId) {
       exec.commentIssue(f.issueId, buildOccurrenceComment(f));
+      if (!exec.labelIssue(f.issueId)) result.unlabelled.push(f.issueId);
       result.commented.push({ findingId: f.id, issueId: f.issueId });
       continue;
     }
@@ -114,6 +119,7 @@ export async function runBridge(candidates: BridgeCandidate[], exec: BridgeExec)
     }
     const issueId = exec.createIssue({ title: buildIssueTitle(f, priority), body: buildIssueBody(f, priority), priority });
     await exec.recordIssue(f.id, issueId);
+    if (!exec.labelIssue(issueId)) result.unlabelled.push(issueId);
     result.filed.push({ findingId: f.id, issueId, priority });
   }
   return result;

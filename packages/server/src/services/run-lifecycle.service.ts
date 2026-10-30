@@ -3,10 +3,11 @@ import { nanoid } from 'nanoid';
 import { eq, and } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
 import {
-  runs, tests, personas, projects, steps, findings,
+  runs, tests, personas, projects, steps,
   type RunStatus, type Verdict,
 } from '../db/schema.js';
 import type { WsHub } from '../ws/hub.js';
+import { findingsForRun } from './run-findings.js';
 import { urlsInText } from './guards.service.js';
 
 // ---- testerPrompt template — VERBATIM from contracts §10 ----
@@ -179,11 +180,7 @@ export class RunLifecycleService {
     videoPath?: string,
     opts: { tokens?: number; status?: RunStatus } = {},
   ): RunStatus {
-    const openFindingsRows = this.db
-      .select({ severity: findings.severity })
-      .from(findings)
-      .where(and(eq(findings.runId, runId), eq(findings.status, 'open')))
-      .all();
+    const openFindingsRows = findingsForRun(this.db, runId).filter((f) => f.status === 'open');
     const status = opts.status ?? computeRunStatus(verdict, openFindingsRows);
     this.db
       .update(runs)
@@ -204,12 +201,19 @@ export class RunLifecycleService {
   }
 
   /** End a running run that hit a budget limit. Not a failure. Guarded like abort(). */
-  budgetExhausted(runId: string, reason: string, videoPath?: string): boolean {
+  budgetExhausted(
+    runId: string,
+    reason: string,
+    videoPath?: string,
+    extra: { tokens?: number; verdict?: Verdict; summary?: string } = {},
+  ): boolean {
     this.db
       .update(runs)
       .set({
         status: 'budget_exhausted',
-        summary: `Budget exhausted: ${reason}`,
+        summary: `Budget exhausted: ${reason}${extra.summary ? `. ${extra.summary}` : ''}`,
+        ...(extra.verdict ? { verdict: extra.verdict } : {}),
+        ...(extra.tokens !== undefined ? { tokens: extra.tokens } : {}),
         finishedAt: new Date(),
         videoPath: videoPath ?? null,
       })

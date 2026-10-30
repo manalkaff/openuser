@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { routeTemplate, normalizeTitle, firstStackFrame, computeFingerprint } from './fingerprint.js';
+import { routeTemplate, normalizeTitle, firstStackFrame, computeFingerprint } from '../fingerprint.js';
 
 describe('routeTemplate', () => {
   it('strips ids, query and trailing slash', () => {
@@ -15,6 +15,15 @@ describe('routeTemplate', () => {
 describe('normalizeTitle', () => {
   it('trims, collapses whitespace and lowercases', () => {
     expect(normalizeTitle('  Checkout   BUTTON\tdoes nothing ')).toBe('checkout button does nothing');
+  });
+});
+
+describe('normalizeTitle ids (R1-F5)', () => {
+  it('strips numbers, uuids and prefixed ids', () => {
+    expect(normalizeTitle('Order 123 cannot be paid')).toBe(normalizeTitle('Order 456 cannot be paid'));
+    expect(normalizeTitle('User 550e8400-e29b-41d4-a716-446655440000 locked')).toBe(normalizeTitle('User 6ba7b810-9dad-11d1-80b4-00c04fd430c8 locked'));
+    expect(normalizeTitle('Cart ord_AbCdEf123456 empty')).toBe(normalizeTitle('Cart ord_ZzYyXx987654 empty'));
+    expect(normalizeTitle('Order 123 cannot be paid')).toBe('order cannot be paid');
   });
 });
 

@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
-import { steps, type runs } from '../db/schema.js';
+import { runs, steps, type Verdict } from '../db/schema.js';
 import type { ActiveSessions } from '../routes/tester/auth.js';
 import type { WsHub } from '../ws/hub.js';
 import { saveRunCheckpoint } from './checkpoint.service.js';
@@ -25,6 +25,8 @@ export function budgetLimitHit(
 
 /** Ends a running run because of a budget limit: checkpoint, close, mark, release tenant and lock. */
 export class RunEndService {
+  private readonly deadlines = new Map<string, ReturnType<typeof setTimeout>>();
+
   constructor(
     private readonly db: DB,
     private readonly homeDir: string,
@@ -52,7 +54,47 @@ export class RunEndService {
     );
   }
 
-  async exhaust(run: Run, limit: BudgetLimit): Promise<void> {
+  /** Start the wall-clock deadline timer for a run that began at `startedAtMs`. */
+  scheduleDeadline(runId: string, startedAtMs: number = Date.now()): void {
+    this.clearDeadline(runId);
+    const ms = Math.max(0, startedAtMs + this.settings.get('maxMinutes') * 60_000 - Date.now());
+    const timer = setTimeout(() => {
+      void this.onDeadline(runId);
+    }, ms);
+    if (typeof timer.unref === 'function') timer.unref();
+    this.deadlines.set(runId, timer);
+  }
+
+  clearDeadline(runId: string): void {
+    const timer = this.deadlines.get(runId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.deadlines.delete(runId);
+    }
+  }
+
+  /** The deadline timer fired: end the run if it is still going. */
+  async onDeadline(runId: string): Promise<void> {
+    this.deadlines.delete(runId);
+    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!run || run.status !== 'running') return;
+    await this.exhaust(run, { kind: 'minutes', reason: `${this.settings.get('maxMinutes')} minutes` });
+  }
+
+  /** Called before accepting any tester operation: ends the run when its wall-clock limit has passed. */
+  async enforceDeadline(run: Run): Promise<BudgetLimit | null> {
+    const limit = this.checkRun(run);
+    if (limit?.kind !== 'minutes') return null;
+    await this.exhaust(run, limit);
+    return limit;
+  }
+
+  async exhaust(
+    run: Run,
+    limit: BudgetLimit,
+    extra: { tokens?: number; verdict?: Verdict; summary?: string } = {},
+  ): Promise<void> {
+    this.clearDeadline(run.id);
     this.watchdogCancel(run.id);
     const session = this.activeSessions.get(run.id);
     let videoPath: string | undefined;
@@ -73,7 +115,7 @@ export class RunEndService {
       }
       this.activeSessions.delete(run.id);
     }
-    new RunLifecycleService(this.db, this.wsHub).budgetExhausted(run.id, limit.reason, videoPath);
+    new RunLifecycleService(this.db, this.wsHub).budgetExhausted(run.id, limit.reason, videoPath, extra);
     await this.guards.release(run.id);
   }
 }

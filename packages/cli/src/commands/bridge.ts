@@ -33,7 +33,7 @@ export function registerBridge(program: Command): void {
           opts.project,
         );
         console.log(
-          `${pc.green('✓')} filed ${r.filed.length}, commented ${r.commented.length}, digest-only ${r.digestOnly}, below threshold ${r.skipped}`,
+          `${pc.green('✓')} filed ${r.filed.length}, commented ${r.commented.length}, digest-only ${r.digestOnly}, below threshold ${r.skipped}${r.unlabelled.length ? `, unlabelled ${r.unlabelled.length} (retried next run)` : ''}`,
         );
         for (const f of r.filed) console.log(`  ${f.priority} ${f.issueId}`);
       } catch (err) {

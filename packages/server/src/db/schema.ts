@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ---- types referenced by schema (defined here to keep schema self-contained) ----
 
@@ -151,6 +151,17 @@ export const findings = sqliteTable('findings', {
   issueId: text('issue_id'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/** Which findings each run hit; a deduped finding row can be linked to many runs. */
+export const runFindings = sqliteTable(
+  'run_findings',
+  {
+    runId: text('run_id').notNull().references(() => runs.id),
+    findingId: text('finding_id').notNull().references(() => findings.id),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.runId, t.findingId] })],
+);
 
 export const logEvents = sqliteTable('log_events', {
   id: text('id').primaryKey(),

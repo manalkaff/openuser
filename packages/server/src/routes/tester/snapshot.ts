@@ -17,6 +17,11 @@ export function snapshotRouter(ctx: ServerContext, activeSessions: ActiveSession
       return c.json({ error: 'Run is not in running state' }, 409);
     }
 
+    const expired = await ctx.runEnd.enforceDeadline(run);
+    if (expired) {
+      return c.json({ error: `Run ended: budget exhausted (${expired.reason})`, budgetExhausted: true }, 409);
+    }
+
     const session = activeSessions.get(run.id);
     if (!session) {
       return c.json({ error: 'No active runner session for this run' }, 500);

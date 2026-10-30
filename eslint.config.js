@@ -48,7 +48,7 @@ export default [
   },
   {
     // Acceptance tests read untyped JSON responses.
-    files: ['packages/*/tests/acceptance/*.ts'],
+    files: ['packages/*/tests/acceptance/*.ts', 'packages/*/tests/integration/review-round1.test.ts', 'packages/*/tests/review-round1.test.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },

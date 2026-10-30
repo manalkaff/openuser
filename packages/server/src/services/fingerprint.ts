@@ -20,8 +20,16 @@ export function routeTemplate(route: string | undefined): string {
   return out === '' ? '/' : out;
 }
 
+/** Lowercase, with uuids, prefixed ids, long hex and numbers stripped, so "Order 123 …" and "Order 456 …" match. */
 export function normalizeTitle(title: string): string {
-  return title.trim().replace(/\s+/g, ' ').toLowerCase();
+  return title
+    .toLowerCase()
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, ' ')
+    .replace(/\b[a-z]{2,5}_[a-z0-9_-]{8,}\b/g, ' ')
+    .replace(/\b[0-9a-f]{12,}\b/g, ' ')
+    .replace(/#?\d+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** The first stack frame in the text (`at fn (file:1:2)`), or '' when there is none. */

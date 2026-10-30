@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { runTelemetry } from './telemetry.service.js';
-import type { runs } from '../db/schema.js';
+import { runTelemetry } from '../telemetry.service.js';
+import type { runs } from '../../db/schema.js';
 
 const base = { tokens: 1000, newFindings: 2, duplicateFindings: 1 } as typeof runs.$inferSelect;
 

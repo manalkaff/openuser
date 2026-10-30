@@ -9,8 +9,8 @@ import {
   matchDenyHost,
   urlsInText,
   tenantFor,
-} from './guards.service.js';
-import { SETTINGS_DEFAULTS, type SettingsShape } from './settings.service.js';
+} from '../guards.service.js';
+import { SETTINGS_DEFAULTS, type SettingsShape } from '../settings.service.js';
 
 function guardsWith(overrides: Partial<SettingsShape>): GuardsService {
   const s = { ...SETTINGS_DEFAULTS, ...overrides };

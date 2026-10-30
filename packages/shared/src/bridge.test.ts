@@ -69,6 +69,7 @@ describe('runBridge', () => {
       recordIssue: async (fid, iid) => {
         recorded[fid] = iid;
       },
+      labelIssue: () => true,
     };
     const res = await runBridge(
       [
@@ -84,5 +85,23 @@ describe('runBridge', () => {
     expect(recorded).toEqual({ fnd_1: 'iss-1' });
     expect(res.digestOnly).toBe(1);
     expect(res.skipped).toBe(1);
+  });
+});
+
+describe('runBridge labelling (R1-F7)', () => {
+  it('labels new and already-filed issues, and reports the ones it could not label', async () => {
+    const labelled: string[] = [];
+    const exec: BridgeExec = {
+      createIssue: () => 'iss-new',
+      commentIssue: () => {},
+      recordIssue: async () => {},
+      labelIssue: (id) => {
+        labelled.push(id);
+        return id !== 'iss-old';
+      },
+    };
+    const res = await runBridge([base, { ...base, id: 'fnd_2', issueId: 'iss-old' }], exec);
+    expect(labelled).toEqual(['iss-new', 'iss-old']);
+    expect(res.unlabelled).toEqual(['iss-old']);
   });
 });

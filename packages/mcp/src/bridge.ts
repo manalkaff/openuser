@@ -35,24 +35,46 @@ function withBodyFile<T>(body: string, fn: (file: string) => T): T {
   }
 }
 
-const multicaExec: Pick<BridgeExec, 'createIssue' | 'commentIssue'> = {
-  createIssue({ title, body, priority }) {
-    const out = withBodyFile(body, (file) =>
-      multica(['issue', 'create', '--title', title, '--description-file', file, '--priority', MULTICA_PRIORITY[priority], '--output', 'json']),
-    );
-    const id = (JSON.parse(out) as { id?: string }).id;
-    if (!id) throw new Error('multica issue create returned no issue id');
-    try {
-      multica(['issue', 'label', 'add', id, 'kind:finding']);
-    } catch (err) {
-      process.stderr.write(`warning: issue ${id} filed but not labelled kind:finding: ${err instanceof Error ? err.message : err}\n`);
-    }
-    return id;
-  },
-  commentIssue(issueId, body) {
-    withBodyFile(body, (file) => multica(['issue', 'comment', 'add', issueId, '--content-file', file]));
-  },
-};
+const LABEL_NAME = 'kind:finding';
+
+/** The id of the kind:finding label, or null when the workspace has none. */
+function findLabelId(): string | null {
+  const parsed = JSON.parse(multica(['label', 'list', '--output', 'json'])) as unknown;
+  const list = Array.isArray(parsed) ? parsed : ((parsed as { labels?: unknown[] }).labels ?? []);
+  const hit = (list as { id?: string; name?: string }[]).find((l) => l.name === LABEL_NAME);
+  return hit?.id ?? null;
+}
+
+function makeMulticaExec(): Pick<BridgeExec, 'createIssue' | 'commentIssue' | 'labelIssue'> {
+  let labelId: string | null | undefined;
+  return {
+    createIssue({ title, body, priority }) {
+      const out = withBodyFile(body, (file) =>
+        multica(['issue', 'create', '--title', title, '--description-file', file, '--priority', MULTICA_PRIORITY[priority], '--output', 'json']),
+      );
+      const id = (JSON.parse(out) as { id?: string }).id;
+      if (!id) throw new Error('multica issue create returned no issue id');
+      return id;
+    },
+    commentIssue(issueId, body) {
+      withBodyFile(body, (file) => multica(['issue', 'comment', 'add', issueId, '--content-file', file]));
+    },
+    labelIssue(issueId) {
+      try {
+        if (labelId === undefined) labelId = findLabelId();
+        if (!labelId) {
+          process.stderr.write(`warning: no "${LABEL_NAME}" label in the workspace; issue ${issueId} left unlabelled\n`);
+          return false;
+        }
+        multica(['issue', 'label', 'add', issueId, labelId]);
+        return true;
+      } catch (err) {
+        process.stderr.write(`warning: could not label issue ${issueId}: ${err instanceof Error ? err.message : err}\n`);
+        return false;
+      }
+    },
+  };
+}
 
 /**
  * File one kind:finding Multica issue per new qualifying fingerprint of a project, and comment on
@@ -60,7 +82,7 @@ const multicaExec: Pick<BridgeExec, 'createIssue' | 'commentIssue'> = {
  */
 export async function bridgeWithStore(store: BridgeStore, projectId: string): Promise<BridgeResult> {
   const candidates = await store.list(projectId);
-  return runBridge(candidates, { ...multicaExec, recordIssue: (findingId, issueId) => store.record(findingId, issueId) });
+  return runBridge(candidates, { ...makeMulticaExec(), recordIssue: (findingId, issueId) => store.record(findingId, issueId) });
 }
 
 /** Bridge through the running daemon's HTTP API (the MCP tool). */

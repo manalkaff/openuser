@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { budgetLimitHit } from './run-end.service.js';
+import { budgetLimitHit } from '../run-end.service.js';
 
 const limits = { maxSteps: 150, maxMinutes: 20, maxTokens: 400_000 };
 

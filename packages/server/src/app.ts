@@ -202,8 +202,13 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     wsHub,
     activeSessions,
     () => settingsService.get('watchdogMinutes'),
-    (runId) => guards.release(runId),
+    async (runId) => {
+      runEnd.clearDeadline(runId);
+      await guards.release(runId);
+    },
   );
+
+  const runEnd = new RunEndService(db, homeDir, wsHub, settingsService, activeSessions, guards, (id) => watchdog.cancel(id));
 
   const ctx: ServerContext = {
     db,
@@ -212,7 +217,7 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
     wsHub,
     activeSessions,
     guards,
-    runEnd: new RunEndService(db, homeDir, wsHub, settingsService, activeSessions, guards, (id) => watchdog.cancel(id)),
+    runEnd,
     watchdogReset: (id) => watchdog.reset(id),
     watchdogCancel: (id) => watchdog.cancel(id),
   };
