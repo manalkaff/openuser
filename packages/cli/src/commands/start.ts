@@ -10,6 +10,41 @@ export interface StartOptions {
   host?: string;
   open: boolean;
   detach: boolean;
+  seedCommand?: string;
+  teardownCommand?: string;
+  lockFile?: string;
+  denyHost?: string[];
+  allowedHost?: string[];
+}
+
+function collect(value: string, previous: string[] = []): string[] {
+  return [...previous, value];
+}
+
+/** The guard settings and Host allowlist from flags. The API cannot set the guard settings. */
+export function guardOptions(opts: StartOptions): {
+  guards: { seedCommand?: string; teardownCommand?: string; lockFile?: string; denyHosts?: string[] };
+  allowedHosts: string[];
+} {
+  const guards: { seedCommand?: string; teardownCommand?: string; lockFile?: string; denyHosts?: string[] } = {};
+  if (opts.seedCommand !== undefined) guards.seedCommand = opts.seedCommand;
+  if (opts.teardownCommand !== undefined) guards.teardownCommand = opts.teardownCommand;
+  if (opts.lockFile !== undefined) guards.lockFile = opts.lockFile;
+  if (opts.denyHost !== undefined) guards.denyHosts = opts.denyHost;
+  return { guards, allowedHosts: opts.allowedHost ?? [] };
+}
+
+/** The `start` argv for the detached child: the same flags, so its guards match. */
+export function detachArgs(opts: StartOptions): string[] {
+  const args = ['start', '--no-open'];
+  if (opts.port) args.push('--port', opts.port);
+  if (opts.host) args.push('--host', opts.host);
+  if (opts.seedCommand !== undefined) args.push('--seed-command', opts.seedCommand);
+  if (opts.teardownCommand !== undefined) args.push('--teardown-command', opts.teardownCommand);
+  if (opts.lockFile !== undefined) args.push('--lock-file', opts.lockFile);
+  for (const h of opts.denyHost ?? []) args.push('--deny-host', h);
+  for (const h of opts.allowedHost ?? []) args.push('--allowed-host', h);
+  return args;
 }
 
 export function registerStart(program: Command): void {
@@ -20,6 +55,11 @@ export function registerStart(program: Command): void {
     .option('--host <host>', 'Host to bind (default 127.0.0.1)')
     .option('--no-open', 'Do not open browser after start')
     .option('--detach', 'Spawn daemon in background and exit')
+    .option('--seed-command <cmd>', 'Shell command run before each run; {tenant} becomes run-<id>')
+    .option('--teardown-command <cmd>', "Shell command run after each run to delete its tenant")
+    .option('--lock-file <path>', 'Lock file held while a run is active (one run at a time)')
+    .option('--deny-host <host>', 'Production host a run must never target (repeatable; replaces the default list)', collect)
+    .option('--allowed-host <host>', 'Extra hostname the API accepts in Host/Origin (repeatable)', collect)
     .action(async (opts: StartOptions) => {
       await runStart(opts);
     });
@@ -50,9 +90,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
     const { spawn } = await import('node:child_process');
     const entry = process.argv[1];
     if (!entry) throw new Error('Cannot locate CLI entry to spawn detached daemon.');
-    const args = ['start', '--no-open'];
-    if (opts.port) args.push('--port', opts.port);
-    if (opts.host) args.push('--host', opts.host);
+    const args = detachArgs(opts);
     const child = spawn(process.execPath, [entry, ...args], {
       detached: true,
       stdio: 'ignore',
@@ -86,6 +124,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
     port: requestedPort,
     host,
     uiDir: bundledUiDir(),
+    ...guardOptions(opts),
   });
 
   const url = `http://${openHost(host)}:${instance.port}`;

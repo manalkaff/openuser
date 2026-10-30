@@ -226,7 +226,7 @@ Manager-facing (no auth in v1):
 | `GET /api/findings?projectId&severity&type&status` | → Finding[] |
 | `PATCH /api/findings/:id` | `{status}` |
 | `GET /api/projects/:id/checkpoints` · `DELETE /api/checkpoints/:id` | |
-| `GET /api/settings` · `PATCH /api/settings` | |
+| `GET /api/settings` · `PATCH /api/settings` | PATCH refuses `seedCommand`, `teardownCommand`, `lockFile`, `denyHosts` with 403: they come only from `~/.openuser/config.json` or `openuser start` flags. Every route answers 403 to a `Host` or `Origin` outside loopback, the bound host and `allowedHosts`. |
 | `GET /artifacts/<runId>/...` | static files from artifacts dir |
 
 Tester-facing (Bearer run token; 401 on bad/expired; 409 if run not in expected state):

@@ -223,6 +223,28 @@ has a severity, a user-voice description, and evidence (screenshot, console/netw
 No. Everything runs on your machine. The daemon binds to `127.0.0.1` by default. Your code is
 never read by the tester subagent. Artifacts (screenshots, video) stay in `~/.openuser/`.
 
+**How do I configure the run guards (tenant seed, run lock, production deny list)?**
+Only from the machine that runs the daemon: put them in `~/.openuser/config.json`, or pass them as
+flags to `openuser start`. Flags win over the file. `PATCH /api/settings` refuses these four keys,
+because the seed and teardown commands run as shell commands and the deny list is a production
+guard.
+
+```json
+{
+  "seedCommand": "factory seed base --tenant {tenant}",
+  "teardownCommand": "factory seed drop --tenant {tenant}",
+  "lockFile": "/var/lock/factory/ui-sweep.lock",
+  "denyHosts": ["23bisnis.com"],
+  "allowedHosts": []
+}
+```
+
+The flags are `--seed-command`, `--teardown-command`, `--lock-file`, `--deny-host` (repeatable;
+it replaces the default list) and `--allowed-host` (repeatable). The API answers only requests
+whose `Host`, and `Origin` when sent, is `127.0.0.1`, `localhost`, `::1`, the `--host` you bound
+to, or a name in `allowedHosts`. That blocks DNS rebinding and cross-site pages. If you bind to
+`0.0.0.0`, add the name or IP your other machines use to `allowedHosts`.
+
 **What does OpenUser cost?**
 OpenUser itself is free and MIT-licensed. Running tests consumes your agent's tokens — the same
 tokens you would spend on any other agent task. There is no OpenUser subscription or usage fee.

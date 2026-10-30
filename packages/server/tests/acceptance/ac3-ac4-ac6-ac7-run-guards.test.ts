@@ -12,14 +12,17 @@ describe('BISNIS-41 acceptance', () => {
   });
 
   it('AC3 each run seeds its own tenant before it starts and deletes it afterwards', async () => {
-    h = await startHarness();
     const dir = mkdtempSync(join(tmpdir(), 'acc-seed-'));
     const log = join(dir, 'tenants.log');
-    const patch = await api(h.port, 'PATCH', '/api/settings', {
-      seedCommand: `echo "seed {tenant}" >> ${log}`,
-      teardownCommand: `echo "delete {tenant}" >> ${log}`,
+    // The seed and teardown commands come from config, never PATCH /api/settings (PR #6 security P1).
+    h = await startHarness(undefined, {
+      guards: {
+        seedCommand: `echo "seed {tenant}" >> ${log}`,
+        teardownCommand: `echo "delete {tenant}" >> ${log}`,
+      },
     });
-    expect(patch.body.seedCommand).toContain('{tenant}');
+    const settings = await api(h.port, 'GET', '/api/settings');
+    expect(settings.body.seedCommand).toContain('{tenant}');
 
     const r1 = await h.prepare();
     const r2 = await h.prepare();
@@ -61,10 +64,11 @@ describe('BISNIS-41 acceptance', () => {
   });
 
   it('AC6 a held lock file makes a second begin_run refuse until the first run ends', async () => {
-    h = await startHarness();
     const lock = join(mkdtempSync(join(tmpdir(), 'acc-lock-')), 'ui-sweep.lock');
-    const patch = await api(h.port, 'PATCH', '/api/settings', { lockFile: lock });
-    expect(patch.body.lockFile).toBe(lock);
+    // The lock file comes from config, never PATCH /api/settings (PR #6 security P1).
+    h = await startHarness(undefined, { guards: { lockFile: lock } });
+    const settings = await api(h.port, 'GET', '/api/settings');
+    expect(settings.body.lockFile).toBe(lock);
 
     const first = await h.startRun();
     expect(first.beginStatus).toBe(200);
@@ -99,7 +103,9 @@ describe('BISNIS-41 acceptance', () => {
     const ok = await h.prepare();
     expect(ok.status).toBe(201); // lookalike suffix is not a match
 
-    await api(h.port, 'PATCH', '/api/settings', { denyHosts: ['not23bisnis.com'] });
+    // The deny list is configured at daemon start, never PATCH /api/settings (PR #6 security P1).
+    await h.close();
+    h = await startHarness('https://not23bisnis.com', { guards: { denyHosts: ['not23bisnis.com'] } });
     const denied = await h.prepare();
     expect(denied.status).toBe(403);
   });
