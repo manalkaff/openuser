@@ -45,7 +45,7 @@ jobs:
   merge-gate:
     name: merge-gate
     if: github.event_name != 'status' || startsWith(github.event.context, 'review/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Check out the default branch (never the PR)
