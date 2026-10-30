@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createServer, type ServerInstance } from '../../src/app.js';
+import { createServer, type ServerInstance, type ServerOptions } from '../../src/app.js';
 
 export async function api(port: number, method: string, path: string, body?: unknown, token?: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -62,9 +62,12 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function startHarness(baseUrlOverride?: string): Promise<Harness> {
+export async function startHarness(
+  baseUrlOverride?: string,
+  serverOpts: Omit<ServerOptions, 'homeDir' | 'port'> = {},
+): Promise<Harness> {
   const homeDir = mkdtempSync(join(tmpdir(), 'openuser-acc-'));
-  const srv: ServerInstance = await createServer({ homeDir, port: 0 });
+  const srv: ServerInstance = await createServer({ ...serverOpts, homeDir, port: 0 });
   const fakeApp = await startFakeApp();
   const port = srv.port;
   const p = await api(port, 'POST', '/api/projects', {
