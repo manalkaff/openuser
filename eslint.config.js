@@ -16,8 +16,8 @@ export default [
       parser: tsParser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', 'packages/*/src/*.test.ts', 'packages/*/tests/integration/*.test.ts', 'packages/*/tests/*.test.ts', 'packages/*/vitest.config.ts', 'packages/*/*.config.ts'],
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
+          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', 'packages/*/src/*.test.ts', 'packages/*/tests/integration/*.test.ts', 'packages/*/tests/*.test.ts', 'packages/*/tests/acceptance/*.ts', 'packages/*/vitest.config.ts', 'packages/*/*.config.ts'],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 40,
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -44,6 +44,13 @@ export default [
     files: ['**/*.test.ts', '**/*.spec.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  {
+    // Acceptance tests read untyped JSON responses.
+    files: ['packages/*/tests/acceptance/*.ts', 'packages/*/tests/integration/review-round1.test.ts', 'packages/*/tests/review-round1.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ];

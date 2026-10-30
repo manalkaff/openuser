@@ -8,7 +8,10 @@ import type { ServerContext } from '../../app.js';
 import type { ActiveSessions } from './auth.js';
 import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
-import { findings, steps } from '../../db/schema.js';
+import { findings, steps, runs } from '../../db/schema.js';
+import { and, sql } from 'drizzle-orm';
+import { linkRunFinding } from '../../services/run-findings.js';
+import { computeFingerprint } from '../../services/fingerprint.js';
 import type { FindingEvidence } from '../../db/schema.js';
 import type { LogPipelineService } from '../../services/log-pipeline.service.js';
 import { TesterFindingBodySchema } from '@openuser/shared';
@@ -29,9 +32,42 @@ export function findingRouter(
       return c.json({ error: 'Run is not in running state' }, 409);
     }
 
+    const expired = await ctx.runEnd.enforceDeadline(run);
+    if (expired) {
+      return c.json({ error: `Run ended: budget exhausted (${expired.reason})`, budgetExhausted: true }, 409);
+    }
+
     watchdogReset(run.id);
 
     const body = c.req.valid('json');
+
+    // Dedupe: a known fingerprint only bumps occurrences and last_seen.
+    const fingerprint = computeFingerprint({
+      projectId: run.projectId,
+      route: body.route,
+      category: body.type,
+      title: body.title,
+      description: body.description,
+      selector: body.selector,
+    });
+    const known = ctx.db
+      .select()
+      .from(findings)
+      .where(and(eq(findings.projectId, run.projectId), eq(findings.fingerprint, fingerprint)))
+      .get();
+    if (known) {
+      ctx.db
+        .update(findings)
+        .set({ occurrences: sql`${findings.occurrences} + 1`, lastSeen: new Date() })
+        .where(eq(findings.id, known.id))
+        .run();
+      linkRunFinding(ctx.db, run.id, known.id);
+      ctx.db.update(runs).set({ duplicateFindings: sql`${runs.duplicateFindings} + 1` }).where(eq(runs.id, run.id)).run();
+      const bumped = ctx.db.select().from(findings).where(eq(findings.id, known.id)).get()!;
+      ctx.wsHub.broadcastRun(run.id, 'finding.created', bumped);
+      return c.json(bumped, 200);
+    }
+
     const session = activeSessions.get(run.id);
 
     // Auto-attach current step
@@ -94,8 +130,13 @@ export function findingRouter(
       description: body.description,
       evidence,
       status: 'open',
+      fingerprint,
+      occurrences: 1,
+      lastSeen: new Date(),
       createdAt: new Date(),
     }).run();
+    linkRunFinding(ctx.db, run.id, id);
+    ctx.db.update(runs).set({ newFindings: sql`${runs.newFindings} + 1` }).where(eq(runs.id, run.id)).run();
 
     const finding = ctx.db.select().from(findings).where(eq(findings.id, id)).get()!;
     ctx.wsHub.broadcastRun(run.id, 'finding.created', finding);

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
-import { runs, steps, findings, personas } from '../db/schema.js';
+import { findingsForRun } from './run-findings.js';
+import { runs, steps, personas } from '../db/schema.js';
 
 export class ReportService {
   constructor(private readonly db: DB) {}
@@ -14,7 +15,7 @@ export class ReportService {
       : null;
 
     const allSteps = this.db.select().from(steps).where(eq(steps.runId, runId)).orderBy(steps.idx).all();
-    const allFindings = this.db.select().from(findings).where(eq(findings.runId, runId)).orderBy(findings.createdAt).all();
+    const allFindings = findingsForRun(this.db, runId);
 
     const lines: string[] = [];
 

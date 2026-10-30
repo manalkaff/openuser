@@ -24,6 +24,7 @@ import {
   deleteCheckpoint,
   type HttpClientOptions,
 } from '../http-client.js';
+import { bridgeProject } from '../bridge.js';
 import { ok, mcpError } from '../mcp-helpers.js';
 
 export function registerManagerTools(server: McpServer, opts: HttpClientOptions): void {
@@ -302,7 +303,7 @@ IMPORTANT: After calling prepare_run, copy the testerPrompt and hand it VERBATIM
       inputSchema: {
         projectId: z.string().optional().describe('Filter by project ID (prj_...)'),
         status: z
-          .enum(['pending', 'running', 'passed', 'blocked', 'failed', 'aborted'])
+          .enum(['pending', 'running', 'passed', 'blocked', 'failed', 'aborted', 'budget_exhausted'])
           .optional()
           .describe('Filter by run status'),
         limit: z
@@ -428,6 +429,25 @@ IMPORTANT: After calling prepare_run, copy the testerPrompt and hand it VERBATIM
       try {
         const report = await getRunReport(opts, input.runId);
         return { content: [{ type: 'text' as const, text: report }] };
+      } catch (err) {
+        return mcpError(err);
+      }
+    },
+  );
+
+  // ── bridge ─────────────────────────────────────────────────────────────────
+  server.registerTool(
+    'bridge',
+    {
+      description:
+        'File one kind:finding Multica issue per new high/critical (or medium seen 3+ times) finding of a project; known fingerprints get a comment instead. Needs the multica CLI on PATH.',
+      inputSchema: {
+        projectId: z.string().min(1).describe('Project ID (prj_...)'),
+      },
+    },
+    async (input) => {
+      try {
+        return ok(await bridgeProject(opts, input.projectId));
       } catch (err) {
         return mcpError(err);
       }

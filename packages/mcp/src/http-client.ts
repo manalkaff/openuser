@@ -1,4 +1,5 @@
 import type {
+  BridgeCandidate,
   PrepareRunResponse,
   PageSnapshot,
   TesterAction,
@@ -240,6 +241,16 @@ export function getRunReport(opts: HttpClientOptions, runId: string): Promise<st
   return req<string>(opts.baseUrl, 'GET', `/api/runs/${runId}/report`);
 }
 
+// ─── Manager: Issue bridge ────────────────────────────────────────────────────
+
+export function getBridgeFindings(opts: HttpClientOptions, projectId: string): Promise<BridgeCandidate[]> {
+  return req<BridgeCandidate[]>(opts.baseUrl, 'GET', `/api/bridge/findings?projectId=${encodeURIComponent(projectId)}`);
+}
+
+export async function recordFindingIssue(opts: HttpClientOptions, findingId: string, issueId: string): Promise<void> {
+  await req<{ ok: boolean }>(opts.baseUrl, 'POST', `/api/findings/${findingId}/issue`, { issueId });
+}
+
 // ─── Manager: Findings ────────────────────────────────────────────────────────
 
 export function getFindings(
@@ -296,7 +307,7 @@ export function testerScreenshot(opts: HttpClientOptions): Promise<TesterScreens
 
 export function testerFinding(
   opts: HttpClientOptions,
-  body: { type: string; severity: string; title: string; description: string },
+  body: { type: string; severity: string; title: string; description: string; route?: string | undefined; selector?: string | undefined },
 ): Promise<TesterFindingResponse> {
   return req<TesterFindingResponse>(opts.baseUrl, 'POST', '/api/tester/finding', body, opts.token);
 }
@@ -310,7 +321,7 @@ export function testerCheckpoint(
 
 export function testerComplete(
   opts: HttpClientOptions,
-  body: { verdict: string; summary: string },
+  body: { verdict: string; summary: string; tokens?: number | undefined },
 ): Promise<TesterCompleteResponse> {
   return req<TesterCompleteResponse>(opts.baseUrl, 'POST', '/api/tester/complete', body, opts.token);
 }

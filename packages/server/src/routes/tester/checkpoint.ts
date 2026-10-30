@@ -1,14 +1,10 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-import { join } from 'node:path';
-import { mkdirSync, writeFileSync } from 'node:fs';
 import type { ServerContext } from '../../app.js';
 import type { ActiveSessions } from './auth.js';
 import { makeTokenAuth } from './auth.js';
 import type { TesterVariables } from './context.js';
-import { checkpoints, steps } from '../../db/schema.js';
+import { saveRunCheckpoint } from '../../services/checkpoint.service.js';
 import { TesterCheckpointBodySchema } from '@openuser/shared';
 
 export function checkpointTesterRouter(
@@ -26,6 +22,11 @@ export function checkpointTesterRouter(
       return c.json({ error: 'Run is not in running state' }, 409);
     }
 
+    const expired = await ctx.runEnd.enforceDeadline(run);
+    if (expired) {
+      return c.json({ error: `Run ended: budget exhausted (${expired.reason})`, budgetExhausted: true }, 409);
+    }
+
     watchdogReset(run.id);
 
     const body = c.req.valid('json');
@@ -34,41 +35,8 @@ export function checkpointTesterRouter(
       return c.json({ error: 'No active runner session for this run' }, 500);
     }
 
-    const checkpointId = `chk_${nanoid(12)}`;
-    const checkpointDir = join(ctx.homeDir, 'checkpoints', checkpointId);
-    mkdirSync(checkpointDir, { recursive: true });
+    const checkpoint = await saveRunCheckpoint(ctx.db, ctx.homeDir, run, session, body);
 
-    const storageStatePath = join(checkpointDir, 'storageState.json');
-    await session.saveStorageState(storageStatePath);
-
-    // Determine current step idx and URL
-    const latestStep = ctx.db
-      .select()
-      .from(steps)
-      .where(eq(steps.runId, run.id))
-      .orderBy(steps.idx)
-      .all()
-      .at(-1);
-
-    const savedAtStep = latestStep?.idx ?? 0;
-    const url = latestStep?.pageUrl ?? run.baseUrlResolved;
-
-    const journey = { notes: body.journeyNotes, savedAtStep, url };
-    writeFileSync(join(checkpointDir, 'journey.json'), JSON.stringify(journey, null, 2));
-
-    ctx.db.insert(checkpoints).values({
-      id: checkpointId,
-      projectId: run.projectId,
-      personaId: run.personaId,
-      name: body.name,
-      description: body.description ?? null,
-      storageStatePath,
-      journey,
-      createdFromRunId: run.id,
-      createdAt: new Date(),
-    }).run();
-
-    const checkpoint = ctx.db.select().from(checkpoints).where(eq(checkpoints.id, checkpointId)).get()!;
     return c.json(checkpoint, 201);
   });
 

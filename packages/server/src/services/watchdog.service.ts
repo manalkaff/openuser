@@ -17,6 +17,8 @@ export class WatchdogService {
     private readonly wsHub: WsHub,
     private readonly activeSessions: ActiveSessions,
     private readonly getWatchdogMinutes: () => number,
+    /** Called after a run is aborted, to release its tenant and lock. */
+    private readonly onEnded: (runId: string) => Promise<void> = async () => {},
   ) {}
 
   private lifecycle(): RunLifecycleService {
@@ -98,5 +100,6 @@ export class WatchdogService {
 
     // Abort the run
     this.lifecycle().abort(runId, videoPath);
+    await this.onEnded(runId);
   }
 }

@@ -141,7 +141,7 @@
     <div class="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
   {:else if run}
     <!-- Verdict banner -->
-    {#if effectiveStatus === 'passed' || effectiveStatus === 'failed' || effectiveStatus === 'blocked' || effectiveStatus === 'aborted'}
+    {#if effectiveStatus === 'passed' || effectiveStatus === 'failed' || effectiveStatus === 'blocked' || effectiveStatus === 'aborted' || effectiveStatus === 'budget_exhausted'}
       <div class="mb-6 rounded-xl ring-1 {effectiveStatus === 'passed' ? 'ring-success/30 bg-success/5' : 'ring-foreground/10 bg-card'} p-5">
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">

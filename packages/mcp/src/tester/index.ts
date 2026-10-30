@@ -397,6 +397,16 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
           .describe(
             'User-voice narrative describing what happened. Write as the persona, e.g. "I selected bank transfer but the checkout button disappeared. I had no idea what to do next."',
           ),
+        route: z
+          .string()
+          .optional()
+          .describe(
+            'The page path where this happened, e.g. "/orders/123/pay". Ids in it are ignored when matching repeats of the same problem, so always give it.',
+          ),
+        selector: z
+          .string()
+          .optional()
+          .describe('CSS selector or ref of the element that failed, e.g. "button#pay". Tells two problems on one page apart.'),
       },
     },
     async (input) => {
@@ -459,6 +469,14 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
           .min(1)
           .describe(
             'Narrative summary of the run in the user\'s voice: what you tried, what worked, what did not, and the overall experience.',
+          ),
+        tokens: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .describe(
+            'Total model tokens you used on this run. OpenUser makes no model calls, so only you can report this; it feeds run telemetry and the token budget (default 400k).',
           ),
       },
     },

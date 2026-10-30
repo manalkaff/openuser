@@ -3,10 +3,12 @@ import { nanoid } from 'nanoid';
 import { eq, and } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
 import {
-  runs, tests, personas, projects, steps, findings,
+  runs, tests, personas, projects, steps,
   type RunStatus, type Verdict,
 } from '../db/schema.js';
 import type { WsHub } from '../ws/hub.js';
+import { findingsForRun } from './run-findings.js';
+import { urlsInText } from './guards.service.js';
 
 // ---- testerPrompt template — VERBATIM from contracts §10 ----
 const TESTER_PROMPT_TEMPLATE = `You are about to act as a real user of a web application. You have NO knowledge of its codebase.
@@ -83,6 +85,8 @@ export class RunLifecycleService {
   constructor(
     private readonly db: DB,
     private readonly wsHub: WsHub,
+    /** Throws when any of the URLs is on the production deny list. */
+    private readonly assertTargetAllowed: (urls: string[]) => void = () => {},
   ) {}
 
   prepare(input: PrepareRunInput): PrepareRunResult {
@@ -116,6 +120,9 @@ export class RunLifecycleService {
       const env = project.environments.find((e) => e.name === input.environment);
       if (env) baseUrlResolved = env.url;
     }
+
+    // Production guard: the target and any login URL in the persona's sign-up instructions
+    this.assertTargetAllowed([baseUrlResolved, ...urlsInText(persona.identity.signupInstructions ?? '')]);
 
     // Generate token
     const rawToken = `rt_${nanoid(24)}`;
@@ -171,13 +178,10 @@ export class RunLifecycleService {
     verdict: Verdict,
     summary: string,
     videoPath?: string,
+    opts: { tokens?: number; status?: RunStatus } = {},
   ): RunStatus {
-    const openFindingsRows = this.db
-      .select({ severity: findings.severity })
-      .from(findings)
-      .where(and(eq(findings.runId, runId), eq(findings.status, 'open')))
-      .all();
-    const status = computeRunStatus(verdict, openFindingsRows);
+    const openFindingsRows = findingsForRun(this.db, runId).filter((f) => f.status === 'open');
+    const status = opts.status ?? computeRunStatus(verdict, openFindingsRows);
     this.db
       .update(runs)
       .set({
@@ -186,6 +190,7 @@ export class RunLifecycleService {
         status,
         videoPath: videoPath ?? null,
         finishedAt: new Date(),
+        ...(opts.tokens !== undefined ? { tokens: opts.tokens } : {}),
       })
       .where(eq(runs.id, runId))
       .run();
@@ -193,6 +198,31 @@ export class RunLifecycleService {
     if (!run) return status;
     this.wsHub.broadcastRun(runId, 'run.completed', run);
     return status;
+  }
+
+  /** End a running run that hit a budget limit. Not a failure. Guarded like abort(). */
+  budgetExhausted(
+    runId: string,
+    reason: string,
+    videoPath?: string,
+    extra: { tokens?: number; verdict?: Verdict; summary?: string } = {},
+  ): boolean {
+    this.db
+      .update(runs)
+      .set({
+        status: 'budget_exhausted',
+        summary: `Budget exhausted: ${reason}${extra.summary ? `. ${extra.summary}` : ''}`,
+        ...(extra.verdict ? { verdict: extra.verdict } : {}),
+        ...(extra.tokens !== undefined ? { tokens: extra.tokens } : {}),
+        finishedAt: new Date(),
+        videoPath: videoPath ?? null,
+      })
+      .where(and(eq(runs.id, runId), eq(runs.status, 'running')))
+      .run();
+    const run = this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!run || run.status !== 'budget_exhausted') return false;
+    this.wsHub.broadcastRun(runId, 'run.completed', run);
+    return true;
   }
 
   /** Abort a run (watchdog or crash) — guarded: no-ops if run already reached a terminal state */
