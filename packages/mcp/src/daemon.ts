@@ -7,7 +7,8 @@ const OPENUSER_HOME = process.env['OPENUSER_HOME'] ?? join(homedir(), '.openuser
 const DAEMON_JSON = join(OPENUSER_HOME, 'daemon.json');
 const DAEMON_TOKEN = join(OPENUSER_HOME, 'daemon.token');
 const DEFAULT_PORT = 8737;
-const POLL_ATTEMPTS = 10;
+// 15 s: a busy machine can take more than 5 s to boot the daemon.
+const POLL_ATTEMPTS = 30;
 const POLL_INTERVAL_MS = 500;
 
 interface DaemonInfo {
@@ -107,7 +108,7 @@ export async function resolveDaemon(): Promise<DaemonConnection> {
 /**
  * Discover the daemon base URL. If the daemon is not reachable:
  * 1. Spawn it detached via OPENUSER_CLI_ENTRY.
- * 2. Poll health 10x500ms.
+ * 2. Poll health 30x500ms.
  * 3. If still down, throw an instructive error.
  */
 export async function resolveDaemonBaseUrl(): Promise<string> {

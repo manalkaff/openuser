@@ -84,7 +84,8 @@ export async function getHealthyDaemonPort(): Promise<number | null> {
 
 /**
  * Ensure the daemon is running. Re-spawns `openuser start --no-open --detach`
- * via OPENUSER_CLI_ENTRY (or process.argv[1]). Polls up to 10 × 500 ms.
+ * via OPENUSER_CLI_ENTRY (or process.argv[1]). Polls up to 30 × 500 ms: a busy machine can take
+ * more than 5 s to boot the daemon.
  */
 export async function ensureDaemonRunning(): Promise<number> {
   const existing = await getHealthyDaemonPort();
@@ -106,14 +107,14 @@ export async function ensureDaemonRunning(): Promise<number> {
   // below times out cleanly and surfaces an actionable message instead.
   child.on('error', () => {});
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 500));
     const port = await getHealthyDaemonPort();
     if (port) return port;
   }
 
   throw new Error(
-    'OpenUser daemon did not start within 5 seconds.\n' +
+    'OpenUser daemon did not start within 15 seconds.\n' +
       'Run `openuser start` manually to see startup errors.',
   );
 }

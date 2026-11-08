@@ -1,11 +1,11 @@
 // BISNIS-131 AC4: another local OS user cannot use the manager API on loopback. The daemon keeps
 // its home at 0700, writes a fresh 0600 manager token on every start, and refuses every route
 // without that token or a dashboard session (default-deny). The CLI and MCP clients send it.
-// The other-OS-user case itself cannot run in CI; the PR's T3 checklist argues it from these
+// The MCP autostart case is in tests/e2e-bisnis-131-mcp-autostart.test.ts. The other-OS-user case itself cannot run in CI; the PR's T3 checklist argues it from these
 // three properties (0700 home + 0600 token + default-deny).
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import WebSocket from 'ws';
@@ -14,9 +14,6 @@ import { createServer, type ServerInstance, type ServerOptions } from '../../src
 const posix = process.platform !== 'win32';
 const CLI = new URL('../../../cli/dist/index.js', import.meta.url).pathname;
 const hasCli = existsSync(CLI);
-// A daemon started from the CLI needs the migrations that `pnpm build:release` copies into
-// cli/dist; a plain `pnpm build` (the CI unit job) does not, so the autostart test skips there.
-const hasReleaseCli = hasCli && existsSync(new URL('../../../cli/dist/migrations/meta/_journal.json', import.meta.url));
 
 const dirs: string[] = [];
 const servers: ServerInstance[] = [];
@@ -253,43 +250,7 @@ describe('BISNIS-131 acceptance', () => {
     expect(out.stderr).toContain(join(home, 'daemon.token'));
   });
 
-  it.skipIf(!hasReleaseCli)('AC4 the MCP manager autostarts the daemon and its calls carry the token', async () => {
-    const home = tempHome();
-    const mcp = spawn(process.execPath, [CLI, 'mcp', '--role', 'manager'], {
-      env: { ...process.env, OPENUSER_HOME: home, OPENUSER_RUNNER_KIND: 'fake' },
-    });
-    try {
-      const rpc = jsonRpc(mcp);
-      await rpc.request('initialize', {
-        protocolVersion: '2025-03-26',
-        capabilities: {},
-        clientInfo: { name: 'ac4', version: '0' },
-      });
-      rpc.notify('notifications/initialized');
-      const result = (await rpc.request('tools/call', { name: 'list_projects', arguments: {} })) as {
-        isError?: boolean;
-        content: { text: string }[];
-      };
-      expect(result.isError ?? false).toBe(false);
-      expect(JSON.parse(result.content[0]!.text)).toEqual([]);
-      // The autostarted daemon is the one the token belongs to, and it refuses calls without it.
-      const daemon = JSON.parse(readFileSync(join(home, 'daemon.json'), 'utf8')) as { port: number };
-      expect((await call(daemon.port, 'GET', '/api/projects')).status).toBe(401);
-    } finally {
-      mcp.kill('SIGTERM');
-      killDaemon(home);
-    }
-  }, 60_000);
 });
-
-function killDaemon(home: string): void {
-  try {
-    const { pid } = JSON.parse(readFileSync(join(home, 'daemon.json'), 'utf8')) as { pid: number };
-    process.kill(pid, 'SIGTERM');
-  } catch {
-    // no daemon was started
-  }
-}
 
 function runCli(args: string[], env: Record<string, string>): Promise<{ code: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
@@ -300,41 +261,4 @@ function runCli(args: string[], env: Record<string, string>): Promise<{ code: nu
     child.stderr.on('data', (d) => (stderr += String(d)));
     child.on('close', (code) => resolve({ code, stdout, stderr }));
   });
-}
-
-/** A minimal newline-delimited JSON-RPC client over the MCP server's stdio. */
-function jsonRpc(child: ChildProcessWithoutNullStreams) {
-  let buf = '';
-  let stderr = '';
-  let nextId = 1;
-  const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
-  child.stderr.on('data', (d) => (stderr += String(d)));
-  child.stdout.on('data', (d) => {
-    buf += String(d);
-    let nl: number;
-    while ((nl = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, nl).trim();
-      buf = buf.slice(nl + 1);
-      if (!line) continue;
-      const msg = JSON.parse(line) as { id?: number; result?: unknown; error?: { message: string } };
-      const p = msg.id !== undefined ? pending.get(msg.id) : undefined;
-      if (!p) continue;
-      pending.delete(msg.id!);
-      if (msg.error) p.reject(new Error(msg.error.message));
-      else p.resolve(msg.result);
-    }
-  });
-  child.on('close', (code) => {
-    for (const p of pending.values()) p.reject(new Error(`MCP exited ${code}: ${stderr}`));
-  });
-  return {
-    request(method: string, params: unknown): Promise<unknown> {
-      const id = nextId++;
-      child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
-      return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
-    },
-    notify(method: string): void {
-      child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method }) + '\n');
-    },
-  };
 }

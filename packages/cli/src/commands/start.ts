@@ -119,7 +119,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
     child.unref();
     child.on('error', () => {});
     console.log(pc.cyan('→') + ` Daemon spawning in background (port ${requestedPort})…`);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 500));
       const fresh = readDaemonJson();
       if (fresh && (await isDaemonHealthy(fresh.port))) {
