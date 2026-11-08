@@ -46,7 +46,7 @@ Data root: `~/.openuser/` (override: env `OPENUSER_HOME`).
     └─ journey.json            # {notes: string, savedAtStep: number, url: string}
 ```
 
-Default port **8737**; if busy, increment until free, write actual port to `daemon.json`. Daemon binds `127.0.0.1` (flag `--host` to override). MCP discovers the daemon via `daemon.json` + `GET /api/health`; if unreachable, MCP spawns `openuser start --detach --no-open` and polls health (10 × 500ms backoff).
+Default port **8737**; if busy, increment until free, write actual port to `daemon.json`. Daemon binds `127.0.0.1` (flag `--host` to override). MCP discovers the daemon via `daemon.json` + `GET /api/health`; if unreachable, MCP spawns `openuser start --detach --no-open` and polls health (30 × 500ms, so up to 15 s: a busy machine can take more than 5 s to boot the daemon). `openuser start --detach` waits the same 15 s.
 
 ### 2.1 Home directory and manager token
 
