@@ -94,9 +94,20 @@ if [[ "$HEALTH_OK" != "true" ]]; then
   exit 1
 fi
 
-# ── 7. Check GET / returns HTML ─────────────────────────────────────────────
-echo "[test-pack] Checking GET / returns HTML…"
-DASHBOARD=$(curl -sf "http://127.0.0.1:${TEST_PORT}/" 2>/dev/null || true)
+# ── 7. Check GET / needs the manager token, then returns HTML with it ───────
+echo "[test-pack] Checking GET / refuses no token…"
+ANON_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${TEST_PORT}/" 2>/dev/null || true)
+if [[ "$ANON_STATUS" != "401" ]]; then
+  echo "[test-pack] ERROR: GET / without the manager token returned $ANON_STATUS, expected 401"
+  exit 1
+fi
+TOKEN_FILE="$TMP_DIR/.openuser/daemon.token"
+if [[ ! -s "$TOKEN_FILE" ]]; then
+  echo "[test-pack] ERROR: $TOKEN_FILE missing or empty"
+  exit 1
+fi
+echo "[test-pack] Checking GET / returns HTML with the token…"
+DASHBOARD=$(curl -sf -H "Authorization: Bearer $(cat "$TOKEN_FILE")" "http://127.0.0.1:${TEST_PORT}/" 2>/dev/null || true)
 if ! echo "$DASHBOARD" | grep -qi "<html"; then
   echo "[test-pack] ERROR: GET / did not return HTML"
   echo "[test-pack] Response: ${DASHBOARD:0:200}"
