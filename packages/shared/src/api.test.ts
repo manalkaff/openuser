@@ -24,11 +24,11 @@ import {
 
 describe('HealthResponseSchema', () => {
   it('accepts valid health response', () => {
-    expect(HealthResponseSchema.safeParse({ ok: true, version: '0.0.1' }).success).toBe(true);
+    expect(HealthResponseSchema.safeParse({ ok: true }).success).toBe(true);
   });
 
   it('rejects ok:false', () => {
-    expect(HealthResponseSchema.safeParse({ ok: false, version: '0.0.1' }).success).toBe(false);
+    expect(HealthResponseSchema.safeParse({ ok: false }).success).toBe(false);
   });
 });
 

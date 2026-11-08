@@ -8,6 +8,7 @@ vi.mock('../src/lib/daemon.js', () => ({
   readDaemonJson: vi.fn().mockReturnValue({ port: 8737, pid: 1, version: '0.1.0', startedAt: '' }),
   isDaemonHealthy: vi.fn().mockResolvedValue(true),
   getHealthyDaemonPort: vi.fn().mockResolvedValue(8737),
+  managerHeaders: () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer tok_test' }),
 }));
 
 // Point skills discovery at a fake skills root so the agent-setup tests don't depend
@@ -69,6 +70,8 @@ describe('runInit', () => {
     if (!secondCall) throw new Error('Expected a second fetch call');
     expect(secondCall[1]?.method).toBe('PATCH');
     expect(secondCall[0]).toContain('prj_existing');
+    // BISNIS-131: both manager calls carry the daemon token.
+    for (const call of mockFetch.mock.calls) expect(call[1]?.headers?.Authorization).toBe('Bearer tok_test');
     const cfg = JSON.parse(readFileSync(join(tmpDir, 'openuser.config.json'), 'utf8'));
     expect(cfg.name).toBe('updated-app');
     expect(cfg.baseUrl).toBe('http://localhost:5000');

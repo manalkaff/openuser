@@ -65,7 +65,8 @@ export type TestWithLastRun = Test & {
   lastRun: { id: string; status: RunStatus; finishedAt: string | null } | null;
 };
 
-export type HealthResponse = { ok: boolean; version: string };
+export type HealthResponse = { ok: boolean };
+export type VersionResponse = { version: string };
 
 export type PrepareRunResponse = { runId: string; token: string; testerPrompt: string };
 
@@ -113,6 +114,10 @@ function qs(params: Record<string, string | undefined>): string {
 
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/api/health');
+}
+
+export function getVersion(): Promise<VersionResponse> {
+  return request<VersionResponse>('/api/version');
 }
 
 // ── Projects ─────────────────────────────────────────────────────────────────

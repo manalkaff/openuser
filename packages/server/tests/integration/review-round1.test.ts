@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startHarness, api, type Harness } from '../acceptance/helpers.js';
+import { startHarness, api, managerAuth, type Harness } from '../acceptance/helpers.js';
 import { backfillFingerprints, openDatabase } from '../../src/db/client.js';
 import { listBridgeCandidates } from '../../src/services/bridge.service.js';
 
@@ -31,7 +31,7 @@ describe('BISNIS-41 review round 1', () => {
 
     const detail = await api(h.port, 'GET', `/api/runs/${b.runId}`);
     expect(detail.body.findings).toHaveLength(1);
-    const report = await fetch(`http://127.0.0.1:${h.port}/api/runs/${b.runId}/report`).then((r) => r.text());
+    const report = await fetch(`http://127.0.0.1:${h.port}/api/runs/${b.runId}/report`, { headers: managerAuth(h.port) }).then((r) => r.text());
     expect(report).toContain('Pay fails');
 
     // still one project-level row

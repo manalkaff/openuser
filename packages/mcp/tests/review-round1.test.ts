@@ -31,12 +31,14 @@ describe('tester MCP tool schemas', () => {
 describe('R1-F2/F6 through a real daemon', () => {
   let stop: () => Promise<void>;
   let base: string;
+  let managerToken = '';
   beforeAll(async () => {
     process.env['OPENUSER_RUNNER_KIND'] = 'fake';
     const { createServer } = await import('@openuser/server');
     const home = mkdtempSync(join(tmpdir(), 'mcp-r1-'));
     const inst = await createServer({ homeDir: home, port: 0 });
     base = `http://127.0.0.1:${inst.port}`;
+    managerToken = inst.token;
     stop = () => inst.close();
   });
   afterAll(async () => {
@@ -44,7 +46,7 @@ describe('R1-F2/F6 through a real daemon', () => {
   });
 
   it('tokens and route/selector reach the persisted run and finding', async () => {
-    const post = async (path: string, body: unknown) => (await fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json() as Promise<any>;
+    const post = async (path: string, body: unknown) => (await fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${managerToken}` }, body: JSON.stringify(body) })).json() as Promise<any>;
     const app = (await import('node:http')).createServer((_q, r) => r.writeHead(200).end('ok'));
     await new Promise<void>((r) => app.listen(0, '127.0.0.1', () => r()));
     const appPort = (app.address() as { port: number }).port;
@@ -63,7 +65,7 @@ describe('R1-F2/F6 through a real daemon', () => {
     await client.callTool({ name: 'complete_run', arguments: { verdict: 'partial', summary: 's', tokens: 777 } });
     app.close();
 
-    const run = (await (await fetch(`${base}/api/runs/${prep.runId}`)).json()) as any;
+    const run = (await (await fetch(`${base}/api/runs/${prep.runId}`, { headers: { authorization: `Bearer ${managerToken}` } })).json()) as any;
     expect(run.telemetry.tokens).toBe(777);
     expect(run.findings).toHaveLength(1);
   });

@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 
 const OPENUSER_HOME = process.env['OPENUSER_HOME'] ?? join(homedir(), '.openuser');
 const DAEMON_JSON = join(OPENUSER_HOME, 'daemon.json');
+const DAEMON_TOKEN = join(OPENUSER_HOME, 'daemon.token');
 const DEFAULT_PORT = 8737;
 const POLL_ATTEMPTS = 10;
 const POLL_INTERVAL_MS = 500;
@@ -71,6 +72,36 @@ async function pollHealth(baseUrl: string): Promise<boolean> {
     await sleep(POLL_INTERVAL_MS);
   }
   return false;
+}
+
+/**
+ * Read the manager token the daemon wrote to `<OPENUSER_HOME>/daemon.token`. The file is mode 0600,
+ * so only the OS user that runs the daemon can read it. Throws an error that names the path.
+ */
+export async function readDaemonToken(file: string = DAEMON_TOKEN): Promise<string> {
+  let token: string;
+  try {
+    token = (await readFile(file, 'utf8')).trim();
+  } catch (err) {
+    throw new Error(
+      `Cannot read the OpenUser daemon token at ${file}: ${err instanceof Error ? err.message : String(err)}.\n` +
+        'Run the MCP server as the same OS user as the daemon, or restart it with `openuser start`.',
+    );
+  }
+  if (!token) throw new Error(`The OpenUser daemon token at ${file} is empty; restart it with \`openuser start\`.`);
+  return token;
+}
+
+export interface DaemonConnection {
+  baseUrl: string;
+  /** Manager token, sent as `Authorization: Bearer` on every manager route and artifact fetch. */
+  token: string;
+}
+
+/** Discover the daemon (starting it when needed) and read its manager token. */
+export async function resolveDaemon(): Promise<DaemonConnection> {
+  const baseUrl = await resolveDaemonBaseUrl();
+  return { baseUrl, token: await readDaemonToken() };
 }
 
 /**

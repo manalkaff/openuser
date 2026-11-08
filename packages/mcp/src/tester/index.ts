@@ -37,7 +37,7 @@ function requireSession(): { content: { type: 'text'; text: string }[]; isError:
   return null;
 }
 
-export function registerTesterTools(server: McpServer, baseUrl: string): void {
+export function registerTesterTools(server: McpServer, baseUrl: string, managerToken?: string): void {
   function getOpts(): HttpClientOptions {
     const tok = session?.token;
     // Non-begin tools guard with requireSession(), so a token is present at those call sites; begin_run passes opts directly.
@@ -355,7 +355,7 @@ export function registerTesterTools(server: McpServer, baseUrl: string): void {
         const result = await testerScreenshot(getOpts());
         // Fetch the image bytes from the artifacts endpoint
         // result.path is relative to the artifacts dir, e.g. "run_abc/shots/xyz.png"
-        const { data, mimeType } = await fetchArtifactBytes(baseUrl, result.path);
+        const { data, mimeType } = await fetchArtifactBytes(baseUrl, result.path, managerToken);
         return {
           content: [
             {

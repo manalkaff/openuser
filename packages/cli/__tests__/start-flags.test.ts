@@ -4,6 +4,7 @@ import {
   registerStart,
   guardOptions,
   detachArgs,
+  bindWarning,
   type StartOptions,
 } from '../src/commands/start.js';
 
@@ -53,5 +54,15 @@ describe('openuser start guard flags', () => {
     expect(guardOptions(parse(detachArgs(parse(argv)).slice(1)))).toEqual(
       guardOptions(parse(argv)),
     );
+  });
+});
+
+describe('bindWarning (BISNIS-131)', () => {
+  it.each(['127.0.0.1', 'localhost', '::1'])('is silent for the loopback bind %s', (host) => {
+    expect(bindWarning(host)).toBeNull();
+  });
+
+  it.each(['0.0.0.0', '::', '192.168.1.5'])('warns for the non-loopback bind %s', (host) => {
+    expect(bindWarning(host)).toContain(`Binding to ${host}`);
   });
 });

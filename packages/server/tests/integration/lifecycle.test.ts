@@ -7,9 +7,13 @@ import { createServer, type ServerInstance } from '../../src/app.js';
 
 // ---- helpers ----
 
+// The manager token of the daemon under test (BISNIS-131); tester calls pass their run token instead.
+let managerToken = '';
+const managerAuth = (): Record<string, string> => ({ Authorization: `Bearer ${managerToken}` });
+
 async function apiPost(port: number, path: string, body: unknown, token?: string) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  headers['Authorization'] = `Bearer ${token ?? managerToken}`;
   const res = await fetch(`http://127.0.0.1:${port}${path}`, {
     method: 'POST',
     headers,
@@ -19,27 +23,27 @@ async function apiPost(port: number, path: string, body: unknown, token?: string
 }
 
 async function apiGet(port: number, path: string) {
-  const res = await fetch(`http://127.0.0.1:${port}${path}`);
+  const res = await fetch(`http://127.0.0.1:${port}${path}`, { headers: managerAuth() });
   return { status: res.status, body: await res.json() };
 }
 
 async function apiPatch(port: number, path: string, body: unknown) {
   const res = await fetch(`http://127.0.0.1:${port}${path}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...managerAuth() },
     body: JSON.stringify(body),
   });
   return { status: res.status, body: await res.json() };
 }
 
 async function apiDelete(port: number, path: string) {
-  const res = await fetch(`http://127.0.0.1:${port}${path}`, { method: 'DELETE' });
+  const res = await fetch(`http://127.0.0.1:${port}${path}`, { method: 'DELETE', headers: managerAuth() });
   return { status: res.status };
 }
 
 function collectWsEvents(port: number): { events: unknown[]; close: () => void } {
   const events: unknown[] = [];
-  const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers: managerAuth() });
   ws.on('open', () => {
     ws.send(JSON.stringify({ type: 'subscribe', channel: 'global' }));
   });
@@ -81,6 +85,7 @@ describe('server lifecycle integration', () => {
     homeDir = mkdtempSync(join(tmpdir(), 'openuser-test-'));
     srv = await createServer({ homeDir, port: 0 }); // port 0 = pick a free one
     port = srv.port;
+    managerToken = srv.token;
     fakeApp = await startFakeApp();
 
     // Create a project
@@ -405,7 +410,7 @@ describe('server lifecycle integration', () => {
     }, token);
     await apiPost(port, '/api/tester/complete', { verdict: 'partial', summary: 'partial exploration' }, token);
 
-    const res = await fetch(`http://127.0.0.1:${port}/api/runs/${runId}/report`);
+    const res = await fetch(`http://127.0.0.1:${port}/api/runs/${runId}/report`, { headers: managerAuth() });
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/markdown');
     const md = await res.text();
@@ -566,6 +571,7 @@ describe('watchdog (fake timers)', () => {
     homeDir = mkdtempSync(join(tmpdir(), 'openuser-wd-'));
     srv = await createServer({ homeDir, port: 0 });
     port = srv.port;
+    managerToken = srv.token;
     fakeApp = await startFakeApp();
 
     const p = await apiPost(port, '/api/projects', {

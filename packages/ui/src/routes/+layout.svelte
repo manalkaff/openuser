@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import '../app.css';
   import { wsConnect, wsDisconnect, wsSubscribe, wsState } from '$lib/ws.svelte.js';
-  import { getHealth } from '$lib/api.js';
+  import { getVersion } from '$lib/api.js';
 
   const { children }: { children: Snippet } = $props();
 
@@ -13,7 +13,7 @@
   onMount(() => {
     wsConnect();
     wsSubscribe('global');
-    getHealth().then((h) => { version = h.version; }).catch(() => {});
+    getVersion().then((v) => { version = v.version; }).catch(() => {});
     return () => wsDisconnect();
   });
 

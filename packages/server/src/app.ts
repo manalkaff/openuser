@@ -8,6 +8,7 @@ import type { Server } from 'node:http';
 import { openDatabase, type DB } from './db/client.js';
 import { SettingsService, type GuardConfig } from './services/settings.service.js';
 import { allowedHostnames, hostAllowlist, readDaemonConfig } from './daemon-config.js';
+import { ManagerAuth, secureHomeDir, writeDaemonToken } from './auth.js';
 import { GuardsService } from './services/guards.service.js';
 import { RunEndService } from './services/run-end.service.js';
 import { telemetryRouter } from './routes/telemetry.js';
@@ -60,6 +61,10 @@ export interface ServerContext {
 export interface ServerInstance {
   server: Server;
   port: number;
+  /** The manager token, also written to `<home>/daemon.token`. */
+  token: string;
+  /** Every mounted route (method and path), so a test can check each one is protected. */
+  routes: { method: string; path: string }[];
   close(): Promise<void>;
 }
 
@@ -111,19 +116,29 @@ function writeDaemonJson(homeDir: string, port: number, version: string): void {
   );
 }
 
-export function buildApp(ctx: ServerContext, version: string, uiDir?: string, allowedHosts = allowedHostnames('127.0.0.1', [])) {
+export function buildApp(
+  ctx: ServerContext,
+  version: string,
+  auth: ManagerAuth,
+  uiDir?: string,
+  allowedHosts = allowedHostnames('127.0.0.1', []),
+) {
   const app = new Hono();
 
   // Every route, including /ws, artifacts and the dashboard, checks Host and Origin first.
   app.use('*', hostAllowlist(allowedHosts));
+  // Then the manager token or a dashboard session, default-deny: only the routes isPublicRoute
+  // lists are open, so a route added later is protected without anyone remembering to.
+  app.use('*', auth.middleware());
 
   // Shared services passed to routes
   const logPipeline = new LogPipelineService(ctx.db, ctx.homeDir, ctx.wsHub);
   const watchdogReset = (runId: string) => ctx.watchdogReset?.(runId);
   const watchdogCancel = (runId: string) => ctx.watchdogCancel?.(runId);
 
-  // Manager routes (no auth; the Host/Origin allowlist above keeps them to this machine)
+  // Manager routes (manager token or dashboard session, checked above)
   app.route('/', healthRouter(version));
+  app.route('/', auth.routes());
   app.route('/', projectsRouter(ctx));
   app.route('/', personasRouter(ctx));
   app.route('/', testsRouter(ctx));
@@ -192,7 +207,7 @@ export function buildApp(ctx: ServerContext, version: string, uiDir?: string, al
 
 export async function createServer(opts: ServerOptions): Promise<ServerInstance> {
   const homeDir = opts.homeDir;
-  mkdirSync(homeDir, { recursive: true });
+  secureHomeDir(homeDir);
   mkdirSync(join(homeDir, 'artifacts'), { recursive: true });
   mkdirSync(join(homeDir, 'checkpoints'), { recursive: true });
 
@@ -244,7 +259,9 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   const uiDir = opts.uiDir ?? process.env['OPENUSER_UI_DIR'];
   const host = opts.host ?? '127.0.0.1';
   const allowed = allowedHostnames(host, [...fileConfig.allowedHosts, ...(opts.allowedHosts ?? [])]);
-  const app = buildApp(ctx, version, uiDir, allowed);
+  // The token file is written before daemon.json, so a client that sees daemon.json can read it.
+  const token = writeDaemonToken(homeDir);
+  const app = buildApp(ctx, version, new ManagerAuth({ token }), uiDir, allowed);
 
   const startPort = opts.port ?? DEFAULT_PORT;
   const listenPort = startPort === 0 ? 0 : await findFreePort(startPort, host);
@@ -286,6 +303,8 @@ export async function createServer(opts: ServerOptions): Promise<ServerInstance>
   return {
     server,
     port,
+    token,
+    routes: app.routes.filter((r) => r.method !== 'ALL').map((r) => ({ method: r.method, path: r.path })),
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((err) => {
