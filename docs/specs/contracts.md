@@ -48,6 +48,13 @@ Data root: `~/.openuser/` (override: env `OPENUSER_HOME`).
 
 Default port **8737**; if busy, increment until free, write actual port to `daemon.json`. Daemon binds `127.0.0.1` (flag `--host` to override). MCP discovers the daemon via `daemon.json` + `GET /api/health`; if unreachable, MCP spawns `openuser start --detach --no-open` and polls health (10 × 500ms backoff).
 
+### 2.1 Home directory and manager token
+
+- On every start the daemon sets `~/.openuser` (or `OPENUSER_HOME`) to mode `0700`, then checks it with `stat`. A home that stays wider than `0700` stops the daemon. This also tightens a home created at `0755` by 0.1.x. It is what keeps the DB, artifacts and checkpoints from other OS users. Windows has no POSIX modes; the check is skipped there.
+- On every start the daemon writes a new random 32-byte **manager token** to `daemon.token`, mode `0600`. It writes a temp file opened with `wx` and mode `0600`, checks it with `fstat`, then renames it into place. `daemon.token` is written before `daemon.json`, so a client that sees `daemon.json` can read the token. A restart replaces the token.
+- The CLI and MCP clients read `daemon.token` as the daemon's OS user and send `Authorization: Bearer <token>`. A missing or unreadable token file is an error that names the path.
+- Binding `--host` to a non-loopback address prints a warning. Auth still applies to that bind.
+
 ## 3. IDs, enums, tokens
 
 - IDs: `<prefix>_<nanoid(12)>` — `prj_ per_ chk_ tst_ run_ stp_ fnd_ evt_`.
@@ -208,11 +215,13 @@ Also exported: all enums (§3), all API request/response schemas (§6), WS event
 
 ## 6. REST API (Hono, all JSON)
 
-Manager-facing (no auth in v1):
+Manager-facing. **Default-deny** (§6.1): every route needs the manager token or a dashboard session.
 
 | Method & path | Body → Response |
 |---|---|
-| `GET /api/health` | → `{ ok: true, version }` |
+| `GET /api/health` | no auth → `{ ok: true }` (liveness only, nothing else) |
+| `GET /api/version` | → `{ version }` |
+| `POST /api/auth/login-code` | → `{ code, expiresAt }` (one-time dashboard login code, §6.1) |
 | `POST /api/projects` | `{name, path, baseUrl, environments?, defaultViewport?}` → Project |
 | `GET /api/projects` | → Project[] (each + `openFindings`, `lastRunAt` aggregates) |
 | `GET /api/projects/:id` · `PATCH /api/projects/:id` | partial update |
@@ -330,6 +339,22 @@ export const LogEventSchema = z.object({
 });
 export type LogEvent = z.infer<typeof LogEventSchema>;
 ```
+
+### 6.1 Manager authentication
+
+- One middleware, `app.use('*')`, runs right after the Host/Origin allowlist. It is **default-deny**: it refuses every request without a valid credential and answers 401 `{error}`. That covers `/ws`, `/artifacts/*` and the dashboard's static files, and any route added later. The Host/Origin allowlist stays as the defence against DNS rebinding.
+- Only these routes need no manager credential:
+  - `GET /api/health`;
+  - `GET /auth/login`;
+  - `/api/tester/*`, which uses its own run token (§3). Getting a run token needs `POST /api/runs`, which is a manager route.
+- A credential is either of:
+  - `Authorization: Bearer <manager token>`, compared in constant time: both sides are SHA-256 hashed, then `timingSafeEqual`;
+  - the `openuser_session` cookie (`HttpOnly; SameSite=Strict; Path=/`), whose value is a random session ID, never the token.
+- **Dashboard login:**
+  - `openuser start` asks for a code with `POST /api/auth/login-code`, then prints (and opens) `http://<host>:<port>/auth/login?code=<code>`.
+  - The code is random and held in memory. It works once and expires after **5 minutes**. It never carries the manager token.
+  - `GET /auth/login?code=` with a valid code sets the session cookie and redirects (302) to `/`. A code that is unknown, already used or expired gets 401.
+  - Sessions live in memory, so a daemon restart ends them all.
 
 ### A2. GET /api/runs/:id/events (§6 addition)
 
