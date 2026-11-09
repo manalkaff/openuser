@@ -59,6 +59,8 @@ export {
 export {
   HealthResponseSchema,
   type HealthResponse,
+  VersionResponseSchema,
+  type VersionResponse,
   CreateProjectBodySchema,
   type CreateProjectBody,
   PatchProjectBodySchema,

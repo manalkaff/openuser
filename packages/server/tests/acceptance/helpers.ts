@@ -3,8 +3,23 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createServer, type ServerInstance, type ServerOptions } from '../../src/app.js';
 
+// Manager tokens by daemon port (BISNIS-131). `api` sends the port's manager token unless the
+// caller passes a token (a tester run token, or a deliberately wrong one).
+const managerTokens = new Map<number, string>();
+
+/** Record a daemon's manager token so `api` and `managerAuth` can send it. */
+export function trustDaemon(srv: { port: number; token: string }): void {
+  managerTokens.set(srv.port, srv.token);
+}
+
+/** The `Authorization` header for a manager call to the daemon on this port. */
+export function managerAuth(port: number): Record<string, string> {
+  const token = managerTokens.get(port);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function api(port: number, method: string, path: string, body?: unknown, token?: string) {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...managerAuth(port) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`http://127.0.0.1:${port}${path}`, {
     method,
@@ -68,6 +83,7 @@ export async function startHarness(
 ): Promise<Harness> {
   const homeDir = mkdtempSync(join(tmpdir(), 'openuser-acc-'));
   const srv: ServerInstance = await createServer({ ...serverOpts, homeDir, port: 0 });
+  trustDaemon(srv);
   const fakeApp = await startFakeApp();
   const port = srv.port;
   const p = await api(port, 'POST', '/api/projects', {

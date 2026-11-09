@@ -5,11 +5,16 @@ import { FindingEvidenceSchema, TesterActionSchema, PageSnapshotSchema } from '.
 
 // ── Health ──────────────────────────────────────────────────────────────────
 
+// /api/health needs no token, so it carries liveness only; the version is behind auth.
 export const HealthResponseSchema = z.object({
   ok: z.literal(true),
-  version: z.string(),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
+
+export const VersionResponseSchema = z.object({
+  version: z.string(),
+});
+export type VersionResponse = z.infer<typeof VersionResponseSchema>;
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 

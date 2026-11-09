@@ -72,14 +72,18 @@ describe('api client', () => {
     vi.resetModules();
   });
 
-  it('getHealth returns ok + version', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ ok: true, version: '0.1.0' }), { status: 200 })
-    );
+  it('getHealth returns ok', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     const result = await api.getHealth();
     expect(result.ok).toBe(true);
-    expect(result.version).toBe('0.1.0');
     expect(fetch).toHaveBeenCalledWith('/api/health');
+  });
+
+  it('getVersion returns the version', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ version: '0.1.0' }), { status: 200 }));
+    const result = await api.getVersion();
+    expect(result.version).toBe('0.1.0');
+    expect(fetch).toHaveBeenCalledWith('/api/version');
   });
 
   it('getProjects returns Project[]', async () => {

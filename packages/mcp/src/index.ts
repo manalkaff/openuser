@@ -1,15 +1,16 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { resolveDaemonBaseUrl } from './daemon.js';
+import { resolveDaemon } from './daemon.js';
 import { registerManagerTools } from './manager/index.js';
 import { registerTesterTools } from './tester/index.js';
 
 export { bridgeProject, bridgeWithStore, type BridgeStore } from './bridge.js';
+export { readDaemonToken } from './daemon.js';
 
 export type McpRole = 'manager' | 'tester';
 
 export async function runMcp(role: McpRole): Promise<void> {
-  const baseUrl = await resolveDaemonBaseUrl();
+  const { baseUrl, token } = await resolveDaemon();
 
   const server = new McpServer({
     name: `openuser-${role}`,
@@ -17,9 +18,9 @@ export async function runMcp(role: McpRole): Promise<void> {
   });
 
   if (role === 'manager') {
-    registerManagerTools(server, { baseUrl });
+    registerManagerTools(server, { baseUrl, managerToken: token });
   } else {
-    registerTesterTools(server, baseUrl);
+    registerTesterTools(server, baseUrl, token);
   }
 
   const transport = new StdioServerTransport();

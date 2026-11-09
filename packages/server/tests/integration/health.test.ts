@@ -18,11 +18,18 @@ describe('T-04: health route', () => {
     await instance.close();
   });
 
-  it('GET /api/health returns { ok: true, version }', async () => {
+  it('GET /api/health returns { ok: true } and nothing else, without a token', async () => {
     const res = await fetch(`http://127.0.0.1:${instance.port}/api/health`);
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean; version: string };
-    expect(body.ok).toBe(true);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it('GET /api/version returns the version with the manager token', async () => {
+    const res = await fetch(`http://127.0.0.1:${instance.port}/api/version`, {
+      headers: { Authorization: `Bearer ${instance.token}` },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { version: string };
     expect(typeof body.version).toBe('string');
   });
 

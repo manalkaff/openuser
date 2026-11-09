@@ -1,7 +1,7 @@
 // packages/server/tests/e2e-demo-shop.test.ts
 import { describe, it, beforeAll, afterAll, expect } from 'vitest';
 import { execSync, spawn } from 'node:child_process';
-import { mkdtempSync, existsSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
@@ -28,9 +28,13 @@ async function waitFor(fn: () => Promise<boolean>, maxMs = 30_000, intervalMs = 
   throw new Error('waitFor timed out');
 }
 
+// The spawned daemon's manager token, read from its daemon.token (BISNIS-131). Tester calls pass
+// their run token instead.
+let managerToken = '';
+
 async function apiGet(base: string, path: string, token?: string) {
   const res = await fetch(`${base}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { Authorization: `Bearer ${token ?? managerToken}` },
   });
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${await res.text()}`);
   return res.json();
@@ -41,7 +45,7 @@ async function apiPost(base: string, path: string, body: unknown, token?: string
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token ?? managerToken}`,
     },
     body: JSON.stringify(body),
   });
@@ -111,6 +115,7 @@ describe.skipIf(!chromiumInstalled())('demo-shop full-lifecycle e2e', () => {
       const json = await r.json().catch(() => null);
       return json?.ok === true;
     });
+    managerToken = readFileSync(join(openUserHome, 'daemon.token'), 'utf8').trim();
 
     // ── 3. Register project + persona ──
     const project = await apiPost(daemonBase, '/api/projects', {
@@ -364,7 +369,9 @@ describe.skipIf(!chromiumInstalled())('demo-shop full-lifecycle e2e', () => {
   });
 
   it('markdown report contains all 4 finding titles', async () => {
-    const res = await fetch(`${daemonBase}/api/runs/${runId}/report`);
+    const res = await fetch(`${daemonBase}/api/runs/${runId}/report`, {
+      headers: { Authorization: `Bearer ${managerToken}` },
+    });
     expect(res.ok).toBe(true);
     const report = await res.text();
     expect(report).toContain('Place Order');

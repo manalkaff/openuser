@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'no
 import { request, createServer as createHttpServer } from 'node:http';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { api } from '../acceptance/helpers.js';
+import { api, managerAuth, trustDaemon } from '../acceptance/helpers.js';
 import { createServer, type ServerOptions } from '../../src/app.js';
 import { openDatabase } from '../../src/db/client.js';
 
@@ -43,6 +43,7 @@ async function startHarness(
 ): Promise<Harness> {
   const homeDir = mkdtempSync(join(tmpdir(), 'openuser-guarded-'));
   const srv = await createServer({ ...serverOpts, homeDir, port: 0 });
+  trustDaemon(srv);
   const target = createHttpServer((_req, res) => res.writeHead(200).end('OK'));
   await new Promise<void>((resolve) => target.listen(0, '127.0.0.1', resolve));
   const targetPort = (target.address() as { port: number }).port;
@@ -82,7 +83,7 @@ async function startHarness(
 /** A raw request so the test controls the Host and Origin headers (fetch does not allow it). */
 function rawGet(port: number, path: string, headers: Record<string, string>): Promise<number> {
   return new Promise((resolve, reject) => {
-    const req = request({ host: '127.0.0.1', port, path, method: 'GET', headers }, (res) => {
+    const req = request({ host: '127.0.0.1', port, path, method: 'GET', headers: { ...managerAuth(port), ...headers } }, (res) => {
       res.resume();
       res.on('end', () => resolve(res.statusCode ?? 0));
     });
@@ -219,6 +220,7 @@ describe('BISNIS-41 manager API hardening', () => {
       }),
     );
     const srv = await createServer({ homeDir, port: 0, guards: { denyHosts: ['b.test'] } });
+    trustDaemon(srv);
     try {
       const s = await api(srv.port, 'GET', '/api/settings');
       expect(s.body.lockFile).toBe('/var/lock/x.lock');
@@ -239,6 +241,7 @@ describe('BISNIS-41 manager API hardening', () => {
     sqlite.close();
 
     const srv = await createServer({ homeDir, port: 0 });
+    trustDaemon(srv);
     try {
       const s = await api(srv.port, 'GET', '/api/settings');
       expect(s.body.denyHosts).toEqual(['23bisnis.com']);

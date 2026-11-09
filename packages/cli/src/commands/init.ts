@@ -3,7 +3,7 @@ import { createInterface, type Interface } from 'node:readline';
 import { basename } from 'node:path';
 import { existsSync } from 'node:fs';
 import pc from 'picocolors';
-import { ensureDaemonRunning } from '../lib/daemon.js';
+import { ensureDaemonRunning, managerHeaders } from '../lib/daemon.js';
 import { writeConfig, type OpenUserConfig } from '../lib/config.js';
 import { writeMcpConfig, type Agent } from '../lib/mcp-config.js';
 import { copySkills, agentsMdSnippet } from './skills.js';
@@ -30,7 +30,7 @@ async function registerProject(cwd: string, name: string, baseUrl: string): Prom
   const port = await ensureDaemonRunning();
   const apiBase = `http://127.0.0.1:${port}`;
 
-  const listRes = await fetch(`${apiBase}/api/projects`);
+  const listRes = await fetch(`${apiBase}/api/projects`, { headers: managerHeaders() });
   if (!listRes.ok) throw new Error(`Failed to list projects: ${listRes.status}`);
   const projects = (await listRes.json()) as Array<{ id: string; path: string }>;
   const existing = projects.find((p) => p.path === cwd);
@@ -38,7 +38,7 @@ async function registerProject(cwd: string, name: string, baseUrl: string): Prom
   if (existing) {
     const patchRes = await fetch(`${apiBase}/api/projects/${existing.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: managerHeaders(),
       body: JSON.stringify({ name, baseUrl }),
     });
     if (!patchRes.ok) throw new Error(`Failed to update project: ${patchRes.status}`);
@@ -47,7 +47,7 @@ async function registerProject(cwd: string, name: string, baseUrl: string): Prom
   } else {
     const postRes = await fetch(`${apiBase}/api/projects`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: managerHeaders(),
       body: JSON.stringify({ name, path: cwd, baseUrl, environments: [] }),
     });
     if (!postRes.ok) throw new Error(`Failed to create project: ${postRes.status}`);

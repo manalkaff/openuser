@@ -101,6 +101,8 @@ export interface HttpClientOptions {
   baseUrl: string;
   /** Bearer token for tester-scoped endpoints */
   token?: string;
+  /** The daemon's manager token (`<OPENUSER_HOME>/daemon.token`), for every non-tester endpoint */
+  managerToken?: string;
 }
 
 /** A typed API error carrying the server's error message. */
@@ -153,11 +155,11 @@ export function postProject(
   opts: HttpClientOptions,
   body: { name: string; path: string; baseUrl: string; environments?: { name: string; url: string }[]; defaultViewport?: { width: number; height: number } },
 ): Promise<Project> {
-  return req<Project>(opts.baseUrl, 'POST', '/api/projects', body);
+  return req<Project>(opts.baseUrl, 'POST', '/api/projects', body, opts.managerToken);
 }
 
 export function getProjects(opts: HttpClientOptions): Promise<(Project & { openFindings: number; lastRunAt: string | null })[]> {
-  return req<(Project & { openFindings: number; lastRunAt: string | null })[]>(opts.baseUrl, 'GET', '/api/projects');
+  return req<(Project & { openFindings: number; lastRunAt: string | null })[]>(opts.baseUrl, 'GET', '/api/projects', undefined, opts.managerToken);
 }
 
 // ─── Manager: Personas ───────────────────────────────────────────────────────
@@ -167,7 +169,7 @@ export function postPersona(
   projectId: string,
   body: Omit<Persona, 'id' | 'projectId' | 'createdAt'>,
 ): Promise<Persona> {
-  return req<Persona>(opts.baseUrl, 'POST', `/api/projects/${projectId}/personas`, body);
+  return req<Persona>(opts.baseUrl, 'POST', `/api/projects/${projectId}/personas`, body, opts.managerToken);
 }
 
 export function patchPersona(
@@ -175,11 +177,11 @@ export function patchPersona(
   personaId: string,
   body: Partial<Omit<Persona, 'id' | 'projectId' | 'createdAt'>>,
 ): Promise<Persona> {
-  return req<Persona>(opts.baseUrl, 'PATCH', `/api/personas/${personaId}`, body);
+  return req<Persona>(opts.baseUrl, 'PATCH', `/api/personas/${personaId}`, body, opts.managerToken);
 }
 
 export function getPersonas(opts: HttpClientOptions, projectId: string): Promise<Persona[]> {
-  return req<Persona[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/personas`);
+  return req<Persona[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/personas`, undefined, opts.managerToken);
 }
 
 // ─── Manager: Tests ───────────────────────────────────────────────────────────
@@ -189,7 +191,7 @@ export function postTest(
   projectId: string,
   body: Omit<Test, 'id' | 'projectId' | 'createdAt'>,
 ): Promise<Test> {
-  return req<Test>(opts.baseUrl, 'POST', `/api/projects/${projectId}/tests`, body);
+  return req<Test>(opts.baseUrl, 'POST', `/api/projects/${projectId}/tests`, body, opts.managerToken);
 }
 
 export function patchTest(
@@ -197,11 +199,11 @@ export function patchTest(
   testId: string,
   body: Partial<Omit<Test, 'id' | 'projectId' | 'createdAt'>>,
 ): Promise<Test> {
-  return req<Test>(opts.baseUrl, 'PATCH', `/api/tests/${testId}`, body);
+  return req<Test>(opts.baseUrl, 'PATCH', `/api/tests/${testId}`, body, opts.managerToken);
 }
 
 export function getTests(opts: HttpClientOptions, projectId: string): Promise<(Test & { lastRun: { id: string; status: string; finishedAt: string | null } | null })[]> {
-  return req<(Test & { lastRun: { id: string; status: string; finishedAt: string | null } | null })[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/tests`);
+  return req<(Test & { lastRun: { id: string; status: string; finishedAt: string | null } | null })[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/tests`, undefined, opts.managerToken);
 }
 
 // ─── Manager: Runs ────────────────────────────────────────────────────────────
@@ -218,7 +220,7 @@ export function postRun(
     agentLabel?: string;
   },
 ): Promise<PrepareRunResponse> {
-  return req<PrepareRunResponse>(opts.baseUrl, 'POST', '/api/runs', body);
+  return req<PrepareRunResponse>(opts.baseUrl, 'POST', '/api/runs', body, opts.managerToken);
 }
 
 export function getRuns(
@@ -230,25 +232,25 @@ export function getRuns(
   if (params.status) qs.set('status', params.status);
   if (params.limit != null) qs.set('limit', String(params.limit));
   const q = qs.toString();
-  return req<RunSummary[]>(opts.baseUrl, 'GET', `/api/runs${q ? `?${q}` : ''}`);
+  return req<RunSummary[]>(opts.baseUrl, 'GET', `/api/runs${q ? `?${q}` : ''}`, undefined, opts.managerToken);
 }
 
 export function getRun(opts: HttpClientOptions, runId: string): Promise<Run & { steps: unknown[]; findings: Finding[] }> {
-  return req<Run & { steps: unknown[]; findings: Finding[] }>(opts.baseUrl, 'GET', `/api/runs/${runId}`);
+  return req<Run & { steps: unknown[]; findings: Finding[] }>(opts.baseUrl, 'GET', `/api/runs/${runId}`, undefined, opts.managerToken);
 }
 
 export function getRunReport(opts: HttpClientOptions, runId: string): Promise<string> {
-  return req<string>(opts.baseUrl, 'GET', `/api/runs/${runId}/report`);
+  return req<string>(opts.baseUrl, 'GET', `/api/runs/${runId}/report`, undefined, opts.managerToken);
 }
 
 // ─── Manager: Issue bridge ────────────────────────────────────────────────────
 
 export function getBridgeFindings(opts: HttpClientOptions, projectId: string): Promise<BridgeCandidate[]> {
-  return req<BridgeCandidate[]>(opts.baseUrl, 'GET', `/api/bridge/findings?projectId=${encodeURIComponent(projectId)}`);
+  return req<BridgeCandidate[]>(opts.baseUrl, 'GET', `/api/bridge/findings?projectId=${encodeURIComponent(projectId)}`, undefined, opts.managerToken);
 }
 
 export async function recordFindingIssue(opts: HttpClientOptions, findingId: string, issueId: string): Promise<void> {
-  await req<{ ok: boolean }>(opts.baseUrl, 'POST', `/api/findings/${findingId}/issue`, { issueId });
+  await req<{ ok: boolean }>(opts.baseUrl, 'POST', `/api/findings/${findingId}/issue`, { issueId }, opts.managerToken);
 }
 
 // ─── Manager: Findings ────────────────────────────────────────────────────────
@@ -263,7 +265,7 @@ export function getFindings(
   if (params.type) qs.set('type', params.type);
   if (params.status) qs.set('status', params.status);
   const q = qs.toString();
-  return req<Finding[]>(opts.baseUrl, 'GET', `/api/findings${q ? `?${q}` : ''}`);
+  return req<Finding[]>(opts.baseUrl, 'GET', `/api/findings${q ? `?${q}` : ''}`, undefined, opts.managerToken);
 }
 
 export function patchFinding(
@@ -271,17 +273,17 @@ export function patchFinding(
   findingId: string,
   body: { status: string },
 ): Promise<Finding> {
-  return req<Finding>(opts.baseUrl, 'PATCH', `/api/findings/${findingId}`, body);
+  return req<Finding>(opts.baseUrl, 'PATCH', `/api/findings/${findingId}`, body, opts.managerToken);
 }
 
 // ─── Manager: Checkpoints ─────────────────────────────────────────────────────
 
 export function getCheckpoints(opts: HttpClientOptions, projectId: string): Promise<Checkpoint[]> {
-  return req<Checkpoint[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/checkpoints`);
+  return req<Checkpoint[]>(opts.baseUrl, 'GET', `/api/projects/${projectId}/checkpoints`, undefined, opts.managerToken);
 }
 
 export function deleteCheckpoint(opts: HttpClientOptions, checkpointId: string): Promise<void> {
-  return req<void>(opts.baseUrl, 'DELETE', `/api/checkpoints/${checkpointId}`);
+  return req<void>(opts.baseUrl, 'DELETE', `/api/checkpoints/${checkpointId}`, undefined, opts.managerToken);
 }
 
 // ─── Tester: all endpoints ────────────────────────────────────────────────────
@@ -328,10 +330,16 @@ export function testerComplete(
 
 // ─── Artifact fetch (for browser_screenshot image content) ───────────────────
 
-export async function fetchArtifactBytes(baseUrl: string, artifactPath: string): Promise<{ data: string; mimeType: string }> {
+export async function fetchArtifactBytes(
+  baseUrl: string,
+  artifactPath: string,
+  managerToken?: string,
+): Promise<{ data: string; mimeType: string }> {
   const url = `${baseUrl}/artifacts/${artifactPath}`;
+  const headers: Record<string, string> = {};
+  if (managerToken) headers['Authorization'] = `Bearer ${managerToken}`;
   // Bounded so a stalled artifact response can't hang the MCP tool indefinitely.
-  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new ApiError(res.status, `Artifact not found: ${artifactPath}`);
   const buffer = await res.arrayBuffer();
   const data = Buffer.from(buffer).toString('base64');

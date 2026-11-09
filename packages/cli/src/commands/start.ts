@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import pc from 'picocolors';
 import { bundledUiDir } from '../lib/paths.js';
-import { readDaemonJson, isDaemonHealthy } from '../lib/daemon.js';
+import { readDaemonJson, isDaemonHealthy, createLoginUrl } from '../lib/daemon.js';
 
 export interface StartOptions {
   port?: string;
@@ -66,7 +66,30 @@ export function registerStart(program: Command): void {
 }
 
 function openHost(host: string): string {
-  return host === '0.0.0.0' ? 'localhost' : host;
+  return host === '0.0.0.0' || host === '::' ? 'localhost' : host;
+}
+
+const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '::1'];
+
+/** The warning printed when the daemon binds beyond loopback, or null for a loopback bind. */
+export function bindWarning(host: string): string | null {
+  if (LOOPBACK_HOSTS.includes(host.toLowerCase())) return null;
+  return (
+    `Binding to ${host} exposes the API beyond this machine. Every route except /api/health still needs ` +
+    'the token in ~/.openuser/daemon.token or a dashboard login, but the traffic is plain HTTP.'
+  );
+}
+
+/** Print the one-time dashboard login link and open it when asked. */
+async function announce(port: number, host: string, open: boolean, label: string): Promise<void> {
+  const url = await createLoginUrl(port, host);
+  console.log(pc.green('✓') + ` ${label} at ${pc.bold(`http://${openHost(host)}:${port}`)}`);
+  // The link stays outside any colour codes, so it can be copied from a log intact.
+  console.log(pc.dim('  Dashboard login (one use, valid 5 minutes):') + ' ' + url);
+  if (open) {
+    const { default: openUrl } = await import('open');
+    await openUrl(url);
+  }
 }
 
 export async function runStart(opts: StartOptions): Promise<void> {
@@ -76,14 +99,12 @@ export async function runStart(opts: StartOptions): Promise<void> {
   // ── If a healthy daemon is already recorded, just open and exit ───────────
   const info = readDaemonJson();
   if (info && (await isDaemonHealthy(info.port))) {
-    const url = `http://127.0.0.1:${info.port}`;
-    console.log(pc.green('✓') + ` OpenUser already running at ${url}`);
-    if (opts.open) {
-      const { default: open } = await import('open');
-      await open(url);
-    }
+    await announce(info.port, '127.0.0.1', opts.open, 'OpenUser already running');
     return;
   }
+
+  const warning = bindWarning(host);
+  if (warning) console.log(pc.yellow('⚠') + '  ' + warning);
 
   // ── Detach mode: re-spawn self in the background (child runs foreground) ───
   if (opts.detach) {
@@ -99,16 +120,11 @@ export async function runStart(opts: StartOptions): Promise<void> {
     child.unref();
     child.on('error', () => {});
     console.log(pc.cyan('→') + ` Daemon spawning in background (port ${requestedPort})…`);
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 500));
       const fresh = readDaemonJson();
       if (fresh && (await isDaemonHealthy(fresh.port))) {
-        const url = `http://${openHost(host)}:${fresh.port}`;
-        console.log(pc.green('✓') + ` Daemon ready at ${url}`);
-        if (opts.open) {
-          const { default: open } = await import('open');
-          await open(url);
-        }
+        await announce(fresh.port, host, opts.open, 'Daemon ready');
         return;
       }
     }
@@ -127,14 +143,8 @@ export async function runStart(opts: StartOptions): Promise<void> {
     ...guardOptions(opts),
   });
 
-  const url = `http://${openHost(host)}:${instance.port}`;
-  console.log(pc.green('✓') + ` OpenUser running at ${pc.bold(url)}`);
+  await announce(instance.port, host, opts.open, 'OpenUser running');
   console.log(pc.dim('  Press Ctrl+C to stop'));
-
-  if (opts.open) {
-    const { default: open } = await import('open');
-    await open(url);
-  }
 
   // Graceful shutdown on Ctrl+C. Surface a close failure via a non-zero exit
   // code rather than masking it with 0.

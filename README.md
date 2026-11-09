@@ -246,6 +246,21 @@ whose `Host`, and `Origin` when sent, is `127.0.0.1`, `localhost`, `::1`, the `-
 to, or a name in `allowedHosts`. That blocks DNS rebinding and cross-site pages. If you bind to
 `0.0.0.0`, add the name or IP your other machines use to `allowedHosts`.
 
+**Who can use the API?**
+Only the OS user that runs the daemon. On every start the daemon sets `~/.openuser` to mode `0700`
+(it refuses to start if it cannot) and writes a new random token to `~/.openuser/daemon.token`
+(mode `0600`). Every route except `GET /api/health` needs that token as
+`Authorization: Bearer <token>`, or a dashboard session. That includes `/ws`, `/artifacts/*` and
+the dashboard. The tester routes use their own per-run token. The CLI and the MCP servers read the
+token file themselves. To open the dashboard, use the one-time login link that `openuser start`
+prints and opens. The link works once and expires after 5 minutes. Run `openuser start` again for a
+new one. A restart replaces the token and ends every dashboard session.
+
+**Can I bind to a network address (`--host`)?**
+You can, and `openuser start` warns when you do. Every route except `/api/health` still needs the
+token or a dashboard session. The traffic is plain HTTP, though, so the token and the session
+cookie cross the network unencrypted. Prefer the default `127.0.0.1` with an SSH tunnel.
+
 **What does OpenUser cost?**
 OpenUser itself is free and MIT-licensed. Running tests consumes your agent's tokens — the same
 tokens you would spend on any other agent task. There is no OpenUser subscription or usage fee.
