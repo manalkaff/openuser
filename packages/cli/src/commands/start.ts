@@ -84,7 +84,8 @@ export function bindWarning(host: string): string | null {
 async function announce(port: number, host: string, open: boolean, label: string): Promise<void> {
   const url = await createLoginUrl(port, host);
   console.log(pc.green('✓') + ` ${label} at ${pc.bold(`http://${openHost(host)}:${port}`)}`);
-  console.log(pc.dim(`  Dashboard login (one use, valid 5 minutes): ${url}`));
+  // The link stays outside any colour codes, so it can be copied from a log intact.
+  console.log(pc.dim('  Dashboard login (one use, valid 5 minutes):') + ' ' + url);
   if (open) {
     const { default: openUrl } = await import('open');
     await openUrl(url);
