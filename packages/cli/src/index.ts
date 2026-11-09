@@ -9,11 +9,12 @@ import { registerInit } from './commands/init.js';
 import { registerSkills } from './commands/skills.js';
 import { registerDoctor } from './commands/doctor.js';
 import { registerBridge } from './commands/bridge.js';
+import { cliVersion } from './lib/version.js';
 
 program
   .name('openuser')
   .description('Self-hostable agent-as-a-user testing platform')
-  .version('0.1.0');
+  .version(cliVersion());
 
 registerStart(program);
 registerMcp(program);
