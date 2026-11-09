@@ -66,6 +66,15 @@ if [[ ! -f "$OPENUSER_BIN" ]]; then
 fi
 echo "[test-pack] Binary: $OPENUSER_BIN"
 
+# The installed CLI reports the version it was published as (factory provisioning checks it).
+WANT_VERSION=$(node -p "require('$REPO_ROOT/packages/cli/package.json').version")
+GOT_VERSION=$("$OPENUSER_BIN" --version)
+if [[ "$GOT_VERSION" != "$WANT_VERSION" ]]; then
+  echo "[test-pack] ERROR: openuser --version printed '$GOT_VERSION', expected $WANT_VERSION"
+  exit 1
+fi
+echo "[test-pack] openuser --version is $GOT_VERSION."
+
 # ── 4. Doctor (informational, don't fail on missing deps) ───────────────────
 echo "[test-pack] Running openuser doctor…"
 "$OPENUSER_BIN" doctor || true
